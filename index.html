@@ -308,9 +308,8 @@
 <div class="main">
   <div id="appContent">
     <div class="loading-state">
-      <div class="icon">📊</div>
-      <div style="font-weight:500; margin-bottom:6px;">กดปุ่ม "โหลดข้อมูล" เพื่อดึงข้อมูลจาก Google Sheets</div>
-      <div style="font-size:12px; color:var(--text3);">ต้องแน่ใจว่า Sheet เป็น "Anyone with the link can view"</div>
+      <div class="spinner"></div>
+      <div style="font-weight:500; margin-bottom:6px;">กำลังเชื่อมต่อฐานข้อมูล...</div>
     </div>
   </div>
 </div>
@@ -348,22 +347,32 @@ async function loadData() {
   btn.textContent = '…กำลังโหลด';
   btn.disabled = true;
   setStatus('กำลังโหลด…', '');
-  document.getElementById('appContent').innerHTML = '<div class="loading-state"><div class="spinner"></div><div>กำลังดึงข้อมูลจาก Google Sheets…</div></div>';
+  
+  // โชว์ Loading สวยๆ ระหว่างรอดึงข้อมูล
+  document.getElementById('appContent').innerHTML = '<div class="loading-state"><div class="spinner"></div><div style="margin-top:10px;">กำลังดึงข้อมูลจาก Google Sheets…</div></div>';
 
   const apiUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=Alldata`;
 
   try {
     const res = await fetch(apiUrl);
     const text = await res.text();
-    const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
+    
+    // 🔥 จุดที่แก้ให้ทนทาน: เปลี่ยนวิธีตัด String ให้รัดกุมขึ้น จะได้ไม่พลาดพังบน GitHub
+    const jsonString = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+    const json = JSON.parse(jsonString);
+    
     RAW = parseGViz(json);
     setStatus(`✓ ${RAW.length} rows`, 'ok');
+    
+    renderApp(); // วาดโครงขึ้นมาก่อน
     populateFilters();
     applyFilters();
   } catch(e) {
+    console.error("Error loading data:", e);
     setStatus('โหลดไม่ได้ — ตรวจสอบ share settings', 'err');
     document.getElementById('appContent').innerHTML = `<div class="loading-state"><div style="font-size:24px;">⚠️</div><div style="margin-bottom:6px;font-weight:500;">ดึงข้อมูลไม่ได้</div><div style="font-size:12px;color:var(--text3);">ตรวจสอบว่า Google Sheet เปิด "Anyone with the link can view"<br>แล้วลองกด "โหลดข้อมูล" อีกครั้ง</div></div>`;
   }
+  
   btn.textContent = '⟳ โหลดข้อมูล';
   btn.disabled = false;
 }
@@ -377,9 +386,6 @@ function setStatus(msg, cls) {
   else el.className = '';
 }
 
-// ----------------------------------------------------------------------
-// เฉพาะฟังก์ชันนี้เท่านั้นที่ถูกแก้เพื่อล้างคอมม่า (Engine Update)
-// ----------------------------------------------------------------------
 function parseGViz(json) {
   const cols = json.table.cols.map(c => c.label);
   return json.table.rows.filter(r => r).map(r => {
@@ -388,21 +394,19 @@ function parseGViz(json) {
       const cell = r.c[i];
       let val = cell ? (cell.v !== null ? cell.v : '') : '';
       
-      // ล้างคอมม่าให้คอลัมน์ที่เป็นตัวเลข เพื่อไม่ให้ parseFloat ในตารางและกราฟพัง
+      // ล้างคอมม่าให้เรียบร้อย
       if (typeof val === 'string' && (c === 'Amount' || c === 'Forecast' || c === 'Actual')) {
         val = val.replace(/,/g, '');
       }
       row[c] = val;
     });
 
-    // แมปยอดเงิน (Amount) ไปลง Forecast/Actual อัตโนมัติ (เผื่อ Sheet มีแค่คอลัมน์ Amount)
     if (row['Amount'] && !row['Forecast'] && row['Type'] === 'Forecast') row['Forecast'] = row['Amount'];
     if (row['Amount'] && !row['Actual'] && row['Type'] === 'Actual') row['Actual'] = row['Amount'];
 
     return row;
   }).filter(r => r['Activity Code']);
 }
-// ----------------------------------------------------------------------
 
 function populateFilters() {
   const acs = [...new Set(RAW.map(r => r['Activity Code']).filter(Boolean))].sort();
@@ -662,9 +666,8 @@ function renderApp() {
   `;
 }
 
-// Auto-init app shell then load
+// 🔥 คำสั่งออโต้โหลด: เมื่อหน้าเว็บโหลดเสร็จ ให้วิ่งไปดึงข้อมูลเองทันที!
 window.onload = () => {
-  renderApp();
   loadData();
 };
 </script>
