@@ -664,6 +664,7 @@ window.onload = () => {
   renderApp();
   loadData();
 };
+  
 </script>
 </body>
 </html>
