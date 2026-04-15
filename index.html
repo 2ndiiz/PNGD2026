@@ -29,38 +29,103 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'IBM Plex Sans Thai', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+  body {
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    min-height: 100vh;
+  }
 
   /* ── Header ── */
-  .header { background: var(--text); color: #fff; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .header {
+    background: var(--text);
+    color: #fff;
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
   .header-left { display: flex; align-items: baseline; gap: 14px; }
   .header-title { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
   .header-sub { font-size: 12px; color: rgba(255,255,255,0.45); font-family: 'IBM Plex Mono', monospace; }
   .header-right { display: flex; align-items: center; gap: 10px; }
-  #loadBtn { background: var(--blue); color: #fff; border: none; padding: 7px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity .15s; }
+  #loadBtn {
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    padding: 7px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    font-weight: 500;
+    transition: opacity .15s;
+  }
   #loadBtn:hover { opacity: .85; }
-  #statusBadge { font-size: 11px; font-family: 'IBM Plex Mono', monospace; padding: 4px 10px; border-radius: 99px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
+  #statusBadge {
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 4px 10px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.6);
+  }
   #statusBadge.ok { background: #14532d22; color: #4ade80; border: 1px solid #4ade8044; }
   #statusBadge.err { background: #7f1d1d22; color: #f87171; border: 1px solid #f8717144; }
 
   /* ── Filters ── */
-  .filters { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 28px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .filters {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 28px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
   .filter-label { font-size: 12px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
-  select { font-family: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); cursor: pointer; min-width: 130px; }
+  select {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    min-width: 130px;
+  }
+  select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+  .filter-sep { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
 
   /* ── Main layout ── */
   .main { padding: 20px 28px; }
 
   /* ── KPI row ── */
   .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+  }
   .kpi-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
   .kpi-value { font-size: 22px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; letter-spacing: -1px; }
   .kpi-value.blue { color: var(--blue); }
   .kpi-value.green { color: var(--green); }
   .kpi-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
-  
-  .kpi-badge { display: inline-block; font-size: 11px; padding: 2px 9px; border-radius: 99px; font-weight: 500; font-family: 'IBM Plex Mono', monospace; }
+  .kpi-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 9px;
+    border-radius: 99px;
+    font-weight: 500;
+    font-family: 'IBM Plex Mono', monospace;
+  }
   .badge-over { background: var(--red-light); color: var(--red); }
   .badge-under { background: var(--green-light); color: var(--green); }
   .badge-zero { background: var(--surface2); color: var(--text3); }
@@ -70,38 +135,140 @@
   @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
 
   /* ── Cards ── */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
-  .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
   .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--text2); }
   .card-body { padding: 16px; }
 
   /* ── Chart ── */
   .chart-wrap { position: relative; width: 100%; height: 240px; }
 
+  /* ── Legend ── */
+  .legend { display: flex; gap: 14px; font-size: 11px; color: var(--text2); }
+  .leg { display: flex; align-items: center; gap: 5px; }
+  .leg-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
   /* ── Pivot table ── */
   .table-scroll { overflow-x: auto; }
-  table.pivot { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
-  table.pivot th { background: var(--surface2); color: var(--text2); font-weight: 600; font-size: 11px; text-transform: uppercase; padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
+  table.pivot {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  table.pivot th {
+    background: var(--surface2);
+    color: var(--text2);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    padding: 7px 10px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+  }
   table.pivot th:first-child, table.pivot th:nth-child(2), table.pivot th:nth-child(3), table.pivot th:nth-child(4), table.pivot th:nth-child(5) { text-align: left; }
-  table.pivot td { padding: 6px 10px; text-align: right; border-bottom: 1px solid #f0ede6; vertical-align: top; color: var(--text); }
+  table.pivot td {
+    padding: 6px 10px;
+    text-align: right;
+    border-bottom: 1px solid #f0ede6;
+    vertical-align: top;
+    color: var(--text);
+  }
   table.pivot td.left { text-align: left; }
   table.pivot td.mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  table.pivot tr.group-row td {
+    background: #f7f6f1;
+    font-weight: 600;
+    font-size: 12px;
+    border-top: 1px solid var(--border);
+  }
   table.pivot tr.forecast-row td { color: var(--blue); }
   table.pivot tr.actual-row td { color: var(--green); }
-  .type-badge { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 99px; font-weight: 500; }
+  table.pivot tr:hover td { background: var(--blue-light); }
+  table.pivot tr.group-row:hover td { background: #eeecea; }
+  .type-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: 99px;
+    font-weight: 500;
+  }
   .type-fc { background: var(--blue-light); color: var(--blue); }
   .type-ac { background: var(--green-light); color: var(--green); }
   .cat-opex { background: var(--amber-light); color: var(--amber); font-size: 10px; padding: 1px 6px; border-radius: 99px; }
   .cat-capex { background: #f3e8ff; color: #7c3aed; font-size: 10px; padding: 1px 6px; border-radius: 99px; }
   .desc-cell { max-width: 220px; white-space: normal; line-height: 1.4; font-size: 12px; }
+  .var-neg { color: var(--red); }
+  .var-pos { color: var(--green); }
 
-  /* ── Loading ── */
-  .loading-state { text-align: center; padding: 60px 20px; color: var(--text3); }
-  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; margin-bottom: 12px; }
+  /* ── Loading state ── */
+  .loading-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text3);
+  }
+  .loading-state .icon { font-size: 32px; margin-bottom: 12px; }
+  .spinner {
+    display: inline-block;
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin: 0 auto 12px;
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .url-input-wrap { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius); padding: 4px 4px 4px 12px; min-width: 320px; }
-  .url-input { background: transparent; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: 'IBM Plex Mono', monospace; flex: 1; outline: none; }
+  /* ── Bar mini ── */
+  .bar-mini-wrap { display: flex; align-items: center; gap: 6px; }
+  .bar-mini-bg { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .bar-mini-fill { height: 100%; border-radius: 2px; transition: width .4s; }
+
+  /* ── Sheet url input ── */
+  .url-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--radius);
+    padding: 4px 4px 4px 12px;
+    min-width: 320px;
+  }
+  .url-input {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    flex: 1;
+    min-width: 0;
+    outline: none;
+  }
+  .url-input::placeholder { color: rgba(255,255,255,0.3); }
+
+  /* responsive */
+  @media (max-width: 600px) {
+    .main { padding: 14px 14px; }
+    .filters { padding: 10px 14px; }
+    .header { padding: 14px 14px; }
+    .url-input-wrap { min-width: 0; flex: 1; }
+  }
 </style>
 </head>
 <body>
@@ -113,7 +280,7 @@
   </div>
   <div class="header-right">
     <div class="url-input-wrap">
-      <input class="url-input" id="sheetUrl" placeholder="วาง Google Sheet URL..." value="https://docs.google.com/spreadsheets/d/1SLO4HOK2NGqyMaMM2_hEd7aN8OeltML7HMX9SBD_7Bs">
+      <input class="url-input" id="sheetUrl" placeholder="วาง Google Sheet URL ที่นี่…" value="https://docs.google.com/spreadsheets/d/1SLO4HOK2NGqyMaMM2_hEd7aN8OeltML7HMX9SBD_7Bs/edit?usp=sharing">
     </div>
     <button id="loadBtn" onclick="loadData()">⟳ โหลดข้อมูล</button>
     <span id="statusBadge">ยังไม่ได้โหลด</span>
@@ -122,16 +289,29 @@
 
 <div class="filters">
   <span class="filter-label">Filter</span>
-  <select id="fAC" onchange="applyFilters()"><option value="">Activity ทั้งหมด</option></select>
-  <select id="fCat" onchange="applyFilters()"><option value="">OPEX + CAPEX</option><option value="OPEX">OPEX เท่านั้น</option><option value="CAPEX">CAPEX เท่านั้น</option></select>
+  <select id="fAC" onchange="applyFilters()"><option value="">Activity Code ทั้งหมด</option></select>
+  <select id="fCat" onchange="applyFilters()">
+    <option value="">OPEX + CAPEX</option>
+    <option value="OPEX">OPEX เท่านั้น</option>
+    <option value="CAPEX">CAPEX เท่านั้น</option>
+  </select>
   <select id="fUser" onchange="applyFilters()"><option value="">User ทั้งหมด</option></select>
   <select id="fStatus" onchange="applyFilters()"><option value="">Status ทั้งหมด</option></select>
-  <select id="fType" onchange="applyFilters()"><option value="">Forecast + Actual</option><option value="Forecast">Forecast</option><option value="Actual">Actual</option></select>
+  <div class="filter-sep"></div>
+  <select id="fType" onchange="applyFilters()">
+    <option value="">Forecast + Actual</option>
+    <option value="Forecast">Forecast เท่านั้น</option>
+    <option value="Actual">Actual เท่านั้น</option>
+  </select>
 </div>
 
 <div class="main">
   <div id="appContent">
-    <div class="loading-state">📊 กดปุ่ม "โหลดข้อมูล" เพื่อเริ่มต้น</div>
+    <div class="loading-state">
+      <div class="icon">📊</div>
+      <div style="font-weight:500; margin-bottom:6px;">กดปุ่ม "โหลดข้อมูล" เพื่อดึงข้อมูลจาก Google Sheets</div>
+      <div style="font-size:12px; color:var(--text3);">ต้องแน่ใจว่า Sheet เป็น "Anyone with the link can view"</div>
+    </div>
   </div>
 </div>
 
@@ -146,8 +326,12 @@ function extractSheetId(url) {
   return m ? m[1] : null;
 }
 
-function fmtN(v) { return v === 0 ? '—' : Math.round(v).toLocaleString('th-TH'); }
+function fmtN(v) {
+  if (v === 0) return '—';
+  return Math.round(v).toLocaleString('th-TH');
+}
 function fmtM(v) {
+  if (v === 0) return '—';
   const a = Math.abs(v);
   const sign = v < 0 ? '-' : '';
   if (a >= 1e6) return sign + (a/1e6).toFixed(2) + 'M';
@@ -164,6 +348,7 @@ async function loadData() {
   btn.textContent = '…กำลังโหลด';
   btn.disabled = true;
   setStatus('กำลังโหลด…', '');
+  document.getElementById('appContent').innerHTML = '<div class="loading-state"><div class="spinner"></div><div>กำลังดึงข้อมูลจาก Google Sheets…</div></div>';
 
   const apiUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=Alldata`;
 
@@ -171,16 +356,13 @@ async function loadData() {
     const res = await fetch(apiUrl);
     const text = await res.text();
     const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
-    
-    // --- จุดที่เรียกใช้การแปลงข้อมูล ---
     RAW = parseGViz(json);
-    
     setStatus(`✓ ${RAW.length} rows`, 'ok');
-    renderApp(); 
     populateFilters();
     applyFilters();
   } catch(e) {
-    setStatus('โหลดไม่ได้ — เช็ค Share Settings', 'err');
+    setStatus('โหลดไม่ได้ — ตรวจสอบ share settings', 'err');
+    document.getElementById('appContent').innerHTML = `<div class="loading-state"><div style="font-size:24px;">⚠️</div><div style="margin-bottom:6px;font-weight:500;">ดึงข้อมูลไม่ได้</div><div style="font-size:12px;color:var(--text3);">ตรวจสอบว่า Google Sheet เปิด "Anyone with the link can view"<br>แล้วลองกด "โหลดข้อมูล" อีกครั้ง</div></div>`;
   }
   btn.textContent = '⟳ โหลดข้อมูล';
   btn.disabled = false;
@@ -189,10 +371,15 @@ async function loadData() {
 function setStatus(msg, cls) {
   const el = document.getElementById('statusBadge');
   el.textContent = msg;
-  el.className = cls;
+  el.className = cls ? `ok ${cls}` : '';
+  if (cls === 'ok') el.className = 'ok';
+  else if (cls === 'err') el.className = 'err';
+  else el.className = '';
 }
 
-// ── ฟังก์ชันที่ช่วยให้กราฟทำงาน (Engine) ──
+// ----------------------------------------------------------------------
+// เฉพาะฟังก์ชันนี้เท่านั้นที่ถูกแก้เพื่อล้างคอมม่า (Engine Update)
+// ----------------------------------------------------------------------
 function parseGViz(json) {
   const cols = json.table.cols.map(c => c.label);
   return json.table.rows.filter(r => r).map(r => {
@@ -200,109 +387,286 @@ function parseGViz(json) {
     cols.forEach((c, i) => {
       const cell = r.c[i];
       let val = cell ? (cell.v !== null ? cell.v : '') : '';
-      // ล้างคอมม่าอัตโนมัติ
+      
+      // ล้างคอมม่าให้คอลัมน์ที่เป็นตัวเลข เพื่อไม่ให้ parseFloat ในตารางและกราฟพัง
       if (typeof val === 'string' && (c === 'Amount' || c === 'Forecast' || c === 'Actual')) {
         val = val.replace(/,/g, '');
       }
       row[c] = val;
     });
-    // แมปค่าให้กราฟหาเจอ
+
+    // แมปยอดเงิน (Amount) ไปลง Forecast/Actual อัตโนมัติ (เผื่อ Sheet มีแค่คอลัมน์ Amount)
     if (row['Amount'] && !row['Forecast'] && row['Type'] === 'Forecast') row['Forecast'] = row['Amount'];
     if (row['Amount'] && !row['Actual'] && row['Type'] === 'Actual') row['Actual'] = row['Amount'];
+
     return row;
   }).filter(r => r['Activity Code']);
 }
+// ----------------------------------------------------------------------
 
 function populateFilters() {
-  const getUniq = (k) => [...new Set(RAW.map(r => r[k]).filter(Boolean))].sort();
+  const acs = [...new Set(RAW.map(r => r['Activity Code']).filter(Boolean))].sort();
+  const users = [...new Set(RAW.map(r => r['User']).filter(Boolean))].sort();
+  const statuses = [...new Set(RAW.map(r => r['Status']).filter(Boolean))].sort();
   const setOpts = (id, vals) => {
     const sel = document.getElementById(id);
+    const cur = sel.value;
     sel.innerHTML = sel.options[0].outerHTML;
     vals.forEach(v => { const o = document.createElement('option'); o.value = v; o.text = v; sel.appendChild(o); });
+    if (vals.includes(cur)) sel.value = cur;
   };
-  setOpts('fAC', getUniq('Activity Code'));
-  setOpts('fUser', getUniq('User'));
-  setOpts('fStatus', getUniq('Status'));
+  setOpts('fAC', acs);
+  setOpts('fUser', users);
+  setOpts('fStatus', statuses);
 }
 
-function applyFilters() {
+function getFiltered() {
   const ac = document.getElementById('fAC').value;
   const cat = document.getElementById('fCat').value;
   const user = document.getElementById('fUser').value;
   const status = document.getElementById('fStatus').value;
   const type = document.getElementById('fType').value;
-
-  const data = RAW.filter(r => 
+  return RAW.filter(r =>
     (!ac || r['Activity Code'] === ac) &&
     (!cat || r['Category (OPEX/CAPEX)'] === cat) &&
     (!user || r['User'] === user) &&
     (!status || r['Status'] === status) &&
     (!type || r['Type'] === type)
   );
+}
 
+function applyFilters() {
+  if (!RAW.length) return;
+  const data = getFiltered();
   renderKPIs(data);
   renderChart(data);
   renderDonut(data);
   renderTable(data);
 }
 
+function sumByMonth(data, typeVal, amtField) {
+  const out = {};
+  MONTHS.forEach(m => out[m] = 0);
+  data.filter(r => !typeVal || r['Type'] === typeVal).forEach(r => {
+    const m = r['Month'];
+    if (out[m] !== undefined) out[m] += parseFloat(r[amtField]) || 0;
+  });
+  return MONTHS.map(m => out[m]);
+}
+
 function renderKPIs(data) {
   const fc = data.filter(r => r['Type'] === 'Forecast').reduce((s, r) => s + (parseFloat(r['Forecast']) || 0), 0);
   const ac = data.filter(r => r['Type'] === 'Actual').reduce((s, r) => s + (parseFloat(r['Actual']) || 0), 0);
   const variance = ac - fc;
-  
+  const pct = fc > 0 ? ((ac / fc) * 100).toFixed(1) : '0.0';
+  const varBadge = variance > 0
+    ? `<span class="kpi-badge badge-over">+${fmtM(variance)} over</span>`
+    : variance < 0
+      ? `<span class="kpi-badge badge-under">${fmtM(variance)} under</span>`
+      : `<span class="kpi-badge badge-zero">on budget</span>`;
+
   document.getElementById('kpiEl').innerHTML = `
-    <div class="kpi"><div class="kpi-label">Forecast</div><div class="kpi-value blue">${fmtM(fc)}</div><div class="kpi-sub">฿${fmtN(fc)}</div></div>
-    <div class="kpi"><div class="kpi-label">Actual</div><div class="kpi-value green">${fmtM(ac)}</div><div class="kpi-sub">฿${fmtN(ac)}</div></div>
-    <div class="kpi"><div class="kpi-label">Utilization</div><div class="kpi-value">${fc > 0 ? ((ac/fc)*100).toFixed(1) : 0}%</div></div>
-    <div class="kpi"><div class="kpi-label">Variance</div><div class="kpi-value" style="color:${variance > 0 ? 'var(--red)' : 'var(--green)'}">${fmtM(variance)}</div></div>
+    <div class="kpi"><div class="kpi-label">Total Forecast</div><div class="kpi-value blue">${fmtM(fc)}</div><div class="kpi-sub">฿${fmtN(fc)}</div></div>
+    <div class="kpi"><div class="kpi-label">Total Actual</div><div class="kpi-value green">${fmtM(ac)}</div><div class="kpi-sub">฿${fmtN(ac)}</div></div>
+    <div class="kpi"><div class="kpi-label">Utilization</div><div class="kpi-value">${pct}%</div><div class="kpi-sub">of budget used YTD</div></div>
+    <div class="kpi"><div class="kpi-label">Variance</div><div class="kpi-value" style="font-size:16px;">${varBadge}</div><div class="kpi-sub">฿${fmtN(Math.abs(variance))}</div></div>
+    <div class="kpi"><div class="kpi-label">Transactions</div><div class="kpi-value">${data.length}</div><div class="kpi-sub">rows in selection</div></div>
   `;
 }
 
 function renderChart(data) {
-  const getVals = (t) => MONTHS.map(m => data.filter(r => r['Month'] === m && r['Type'] === t).reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0));
+  const fcVals = sumByMonth(data, 'Forecast', 'Forecast');
+  const acVals = sumByMonth(data, 'Actual', 'Actual');
+
   if (barChart) barChart.destroy();
-  barChart = new Chart(document.getElementById('barChart').getContext('2d'), {
+  const ctx = document.getElementById('barChart').getContext('2d');
+  barChart = new Chart(ctx, {
     type: 'bar',
-    data: { labels: MLABELS, datasets: [
-      { label: 'Forecast', data: getVals('Forecast'), backgroundColor: 'rgba(26,86,160,0.7)' },
-      { label: 'Actual', data: getVals('Actual'), backgroundColor: 'rgba(13,122,95,0.75)' }
-    ]},
-    options: { responsive: true, maintainAspectRatio: false }
+    data: {
+      labels: MLABELS,
+      datasets: [
+        { label: 'Forecast', data: fcVals, backgroundColor: 'rgba(26,86,160,0.7)', borderRadius: 3, barPercentage: 0.85, categoryPercentage: 0.7 },
+        { label: 'Actual', data: acVals, backgroundColor: 'rgba(13,122,95,0.75)', borderRadius: 3, barPercentage: 0.85, categoryPercentage: 0.7 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ฿${Math.round(c.raw).toLocaleString()}` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#888' }, border: { display: false } },
+        y: {
+          grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false },
+          ticks: { font: { size: 10 }, color: '#888', callback: v => fmtM(v) }
+        }
+      }
+    }
   });
 }
 
 function renderDonut(data) {
-  const opex = data.filter(r => r['Category (OPEX/CAPEX)'] === 'OPEX').reduce((s,r) => s + (parseFloat(r['Amount']) || 0), 0);
-  const capex = data.filter(r => r['Category (OPEX/CAPEX)'] === 'CAPEX').reduce((s,r) => s + (parseFloat(r['Amount']) || 0), 0);
+  const opex = data.filter(r => r['Category (OPEX/CAPEX)'] === 'OPEX').reduce((s,r) => s + (parseFloat(r['Amount']) || parseFloat(r['Forecast']) || parseFloat(r['Actual']) || 0), 0);
+  const capex = data.filter(r => r['Category (OPEX/CAPEX)'] === 'CAPEX').reduce((s,r) => s + (parseFloat(r['Amount']) || parseFloat(r['Forecast']) || parseFloat(r['Actual']) || 0), 0);
+  const total = opex + capex;
+  const opexP = total > 0 ? ((opex/total)*100).toFixed(1) : 0;
+  const capexP = total > 0 ? ((capex/total)*100).toFixed(1) : 0;
+
   if (donutChart) donutChart.destroy();
-  donutChart = new Chart(document.getElementById('donutChart').getContext('2d'), {
+  const ctx = document.getElementById('donutChart').getContext('2d');
+  donutChart = new Chart(ctx, {
     type: 'doughnut',
-    data: { labels: ['OPEX', 'CAPEX'], datasets: [{ data: [opex, capex], backgroundColor: ['#b4530977', '#7c3aed77'] }]},
-    options: { responsive: true, maintainAspectRatio: false }
+    data: {
+      labels: ['OPEX', 'CAPEX'],
+      datasets: [{ data: [opex, capex], backgroundColor: ['#b4530977', '#7c3aed77'], borderColor: ['#b45309', '#7c3aed'], borderWidth: 1.5, hoverOffset: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${c.label}: ฿${Math.round(c.raw).toLocaleString()} (${c.label === 'OPEX' ? opexP : capexP}%)` } }
+      }
+    }
   });
+
+  document.getElementById('donutLegend').innerHTML = `
+    <div class="leg"><span class="leg-dot" style="background:#b45309;"></span>OPEX ${opexP}% — ${fmtM(opex)}</div>
+    <div class="leg"><span class="leg-dot" style="background:#7c3aed;"></span>CAPEX ${capexP}% — ${fmtM(capex)}</div>
+  `;
 }
 
 function renderTable(data) {
-  let html = `<table class="pivot"><thead><tr><th>Activity</th><th>User</th><th>Type</th><th>Month</th><th>Amount</th><th>Description</th></tr></thead><tbody>`;
+  // Group by ActivityCode > BudgetAccount > Type
+  const groups = {};
   data.forEach(r => {
-    html += `<tr><td class="left mono">${r['Activity Code']}</td><td class="left">${r['User']}</td><td><span class="type-badge ${r['Type'] === 'Forecast' ? 'type-fc' : 'type-ac'}">${r['Type']}</span></td><td>${r['Month']}</td><td class="mono"><strong>${fmtN(parseFloat(r['Amount']))}</strong></td><td class="left desc-cell">${r['Description']}</td></tr>`;
+    const ac = r['Activity Code'] || '—';
+    const ba = r['Budget Account'] || '—';
+    const type = r['Type'] || '—';
+    const key = `${ac}||${ba}`;
+    if (!groups[key]) groups[key] = { ac, ba, cat: r['Category (OPEX/CAPEX)'], rows: [] };
+    groups[key].rows.push(r);
   });
-  document.getElementById('pivotEl').innerHTML = html + '</tbody></table>';
+
+  // Build monthly totals per group per type
+  let html = `<table class="pivot">
+    <thead><tr>
+      <th class="left" style="min-width:85px;">Activity</th>
+      <th class="left" style="min-width:90px;">Budget Acct</th>
+      <th class="left" style="min-width:55px;">Cat</th>
+      <th class="left" style="min-width:60px;">User</th>
+      <th class="left" style="min-width:55px;">Status</th>
+      <th class="left" style="min-width:180px;">Description</th>
+      <th class="left" style="min-width:70px;">Type</th>
+      ${MLABELS.map(m => `<th style="min-width:68px;">${m}</th>`).join('')}
+      <th style="min-width:80px;">Total</th>
+    </tr></thead><tbody>`;
+
+  const sortedKeys = Object.keys(groups).sort();
+
+  sortedKeys.forEach(key => {
+    const g = groups[key];
+    // Collect unique descriptions & users in this group
+    const descSet = [...new Set(g.rows.map(r => r['Description']).filter(Boolean))];
+    const userSet = [...new Set(g.rows.map(r => r['User']).filter(Boolean))];
+    const statusSet = [...new Set(g.rows.map(r => r['Status']).filter(Boolean))];
+
+    // Forecast totals by month
+    const fcMap = {}; const acMap = {};
+    MONTHS.forEach(m => { fcMap[m] = 0; acMap[m] = 0; });
+    g.rows.forEach(r => {
+      const m = r['Month'];
+      if (r['Type'] === 'Forecast') fcMap[m] = (fcMap[m] || 0) + (parseFloat(r['Forecast']) || 0);
+      if (r['Type'] === 'Actual') acMap[m] = (acMap[m] || 0) + (parseFloat(r['Actual']) || 0);
+    });
+
+    const fcTotal = Object.values(fcMap).reduce((a,b) => a+b, 0);
+    const acTotal = Object.values(acMap).reduce((a,b) => a+b, 0);
+    const hasFc = fcTotal > 0;
+    const hasAc = acTotal > 0;
+
+    const catHtml = g.cat === 'OPEX' ? '<span class="cat-opex">OPEX</span>' : g.cat === 'CAPEX' ? '<span class="cat-capex">CAPEX</span>' : g.cat;
+    const descHtml = `<div class="desc-cell">${descSet.join('<br>')}</div>`;
+    const baFmt = String(g.ba).replace(/\.0$/, '').replace(/(\d+)\.?\d*E\+?(\d+)/, (_, m, e) => String(parseInt(m) * Math.pow(10, parseInt(e)-7)));
+
+    const fType = document.getElementById('fType').value;
+
+    if (hasFc && fType !== 'Actual') {
+      html += `<tr class="forecast-row">
+        <td class="left mono">${g.ac}</td>
+        <td class="left mono">${baFmt}</td>
+        <td class="left">${catHtml}</td>
+        <td class="left">${userSet.join(', ')}</td>
+        <td class="left">${statusSet.join(', ')}</td>
+        <td class="left">${descHtml}</td>
+        <td class="left"><span class="type-badge type-fc">Forecast</span></td>
+        ${MONTHS.map(m => `<td class="mono">${fcMap[m] ? fmtN(fcMap[m]) : '—'}</td>`).join('')}
+        <td class="mono"><strong>${fmtN(fcTotal)}</strong></td>
+      </tr>`;
+    }
+    if (hasAc && fType !== 'Forecast') {
+      html += `<tr class="actual-row">
+        <td class="left mono">${g.ac}</td>
+        <td class="left mono">${baFmt}</td>
+        <td class="left">${catHtml}</td>
+        <td class="left">${userSet.join(', ')}</td>
+        <td class="left">${statusSet.join(', ')}</td>
+        <td class="left">${descHtml}</td>
+        <td class="left"><span class="type-badge type-ac">Actual</span></td>
+        ${MONTHS.map(m => `<td class="mono">${acMap[m] ? fmtN(acMap[m]) : '—'}</td>`).join('')}
+        <td class="mono"><strong>${fmtN(acTotal)}</strong></td>
+      </tr>`;
+    }
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('pivotEl').innerHTML = html;
 }
 
 function renderApp() {
   document.getElementById('appContent').innerHTML = `
     <div class="kpi-row" id="kpiEl"></div>
     <div class="two-col">
-      <div class="card"><div class="card-header"><span class="card-title">Forecast vs Actual</span></div><div class="card-body"><div class="chart-wrap"><canvas id="barChart"></canvas></div></div></div>
-      <div class="card"><div class="card-header"><span class="card-title">OPEX / CAPEX</span></div><div class="card-body"><div class="chart-wrap"><canvas id="donutChart"></canvas></div></div></div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Forecast vs Actual รายเดือน</span>
+          <div class="legend">
+            <div class="leg"><span class="leg-dot" style="background:#1a56a0;"></span>Forecast</div>
+            <div class="leg"><span class="leg-dot" style="background:#0d7a5f;"></span>Actual</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="barChart" role="img" aria-label="Monthly Forecast vs Actual"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">OPEX / CAPEX สัดส่วน</span>
+          <div class="legend" id="donutLegend"></div>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="donutChart" role="img" aria-label="OPEX vs CAPEX donut chart"></canvas></div>
+        </div>
+      </div>
     </div>
-    <div class="card"><div class="card-body"><div class="table-scroll" id="pivotEl"></div></div></div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">รายละเอียดทุก Activity</span>
+        <span style="font-size:11px;color:var(--text3);" id="rowCount"></span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-scroll" id="pivotEl"></div>
+      </div>
+    </div>
   `;
 }
 
-window.onload = () => { if(RAW.length) renderApp(); };
+// Auto-init app shell then load
+window.onload = () => {
+  renderApp();
+  loadData();
+};
 </script>
 </body>
 </html>
