@@ -69,10 +69,10 @@
   .card-body { padding: 16px; }
   .chart-wrap { height: 240px; position: relative; }
 
-  /* ── Table (The original Claude style) ── */
-  .table-scroll { overflow-x: auto; }
+  /* ── Table Styling ── */
+  .table-scroll { overflow-x: auto; max-height: 500px; }
   table.pivot { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
-  table.pivot th { background: var(--surface2); color: var(--text2); font-weight: 600; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
+  table.pivot th { background: var(--surface2); color: var(--text2); font-weight: 600; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
   table.pivot td { padding: 6px 10px; border-bottom: 1px solid #f0ede6; }
   .mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
   .type-badge { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 99px; font-weight: 500; }
@@ -85,7 +85,7 @@
 <div class="header">
   <div class="header-left">
     <span class="header-title">PNGD Budget 2026</span>
-    <span class="header-sub">Original Claude Design</span>
+    <span class="header-sub">Original Visualization</span>
   </div>
   <div class="header-right" style="display:flex; gap:10px;">
     <div class="url-input-wrap">
@@ -99,26 +99,30 @@
 <div class="filters">
   <span class="filter-label">Filter</span>
   <select id="fAC" onchange="applyFilters()"><option value="">Activity ทั้งหมด</option></select>
-  <select id="fCat" onchange="applyFilters()"><option value="">OPEX + CAPEX</option><option value="OPEX">OPEX</option><option value="CAPEX">CAPEX</option></select>
+  <select id="fCat" onchange="applyFilters()"><option value="">OPEX + CAPEX</option><option value="OPEX">OPEX เท่านั้น</option><option value="CAPEX">CAPEX เท่านั้น</option></select>
   <select id="fUser" onchange="applyFilters()"><option value="">User ทั้งหมด</option></select>
-  <select id="fType" onchange="applyFilters()"><option value="">Forecast + Actual</option><option value="Forecast">Forecast</option><option value="Actual">Actual</option></select>
+  <select id="fStatus" onchange="applyFilters()"><option value="">Status ทั้งหมด</option></select>
+  <div class="filter-sep"></div>
+  <select id="fType" onchange="applyFilters()"><option value="">Forecast + Actual</option><option value="Forecast">Forecast เท่านั้น</option><option value="Actual">Actual เท่านั้น</option></select>
 </div>
 
-<div class="main" id="mainApp">
-  <div class="kpi-row" id="kpiEl"></div>
-  <div class="two-col">
-    <div class="card">
-      <div class="card-header"><span class="card-title">Forecast vs Actual Monthly</span></div>
-      <div class="card-body"><div class="chart-wrap"><canvas id="barChart"></canvas></div></div>
+<div class="main">
+  <div id="appContent">
+    <div class="kpi-row" id="kpiEl"></div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Forecast vs Actual รายเดือน</span></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="barChart"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">สัดส่วน OPEX / CAPEX</span></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="donutChart"></canvas></div></div>
+      </div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">OPEX / CAPEX Proportion</span></div>
-      <div class="card-body"><div class="chart-wrap"><canvas id="donutChart"></canvas></div></div>
+      <div class="card-header"><span class="card-title">รายละเอียดงบประมาณรายกิจกรรม</span></div>
+      <div class="card-body" style="padding:0;"><div class="table-scroll" id="pivotEl"></div></div>
     </div>
-  </div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Budget Details</span></div>
-    <div class="card-body" style="padding:0;"><div class="table-scroll" id="pivotEl"></div></div>
   </div>
 </div>
 
@@ -128,13 +132,14 @@ const MLABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','No
 let RAW = [];
 let barChart = null, donutChart = null;
 
-// เครื่องยนต์ใหม่: ล้างคอมม่า
+// ฟังก์ชันล้างตัวเลข (ล้างคอมม่า)
 const cleanN = (v) => {
     if (typeof v === 'number') return v;
     if (!v) return 0;
     return parseFloat(String(v).replace(/,/g, '')) || 0;
 };
 
+function fmtN(v) { return Math.round(v).toLocaleString('th-TH'); }
 function fmtM(v) {
   const a = Math.abs(v);
   if (a >= 1e6) return (v/1e6).toFixed(2) + 'M';
@@ -175,6 +180,7 @@ async function loadData() {
   }
 }
 
+// --- เครื่องยนต์สำคัญ: จัดการข้อมูลจาก Google ---
 function processGoogleData(table) {
     const cols = table.cols.map(c => c.label);
     return table.rows.map(r => {
@@ -182,7 +188,7 @@ function processGoogleData(table) {
         r.c.forEach((cell, idx) => {
             if (cols[idx]) obj[cols[idx]] = cell ? cell.v : null;
         });
-        // ล้างเครื่องหมายคอมม่าที่ทำให้กราฟพัง
+        // ล้างเครื่องหมายคอมม่า
         obj['Amount'] = cleanN(obj['Amount']);
         obj['Forecast'] = cleanN(obj['Forecast'] || (obj['Type'] === 'Forecast' ? obj['Amount'] : 0));
         obj['Actual'] = cleanN(obj['Actual'] || (obj['Type'] === 'Actual' ? obj['Amount'] : 0));
@@ -199,18 +205,21 @@ function populateFilters() {
   };
   fill('fAC', getUniq('Activity Code'));
   fill('fUser', getUniq('User'));
+  fill('fStatus', getUniq('Status'));
 }
 
 function applyFilters() {
   const fAC = document.getElementById('fAC').value;
   const fCat = document.getElementById('fCat').value;
   const fUser = document.getElementById('fUser').value;
+  const fStatus = document.getElementById('fStatus').value;
   const fType = document.getElementById('fType').value;
 
   const data = RAW.filter(r => 
     (!fAC || r['Activity Code'] === fAC) &&
     (!fCat || r['Category (OPEX/CAPEX)'] === fCat) &&
     (!fUser || r['User'] === fUser) &&
+    (!fStatus || r['Status'] === fStatus) &&
     (!fType || r['Type'] === fType)
   );
 
@@ -225,8 +234,8 @@ function renderKPIs(data) {
   const varVal = ac - fc;
 
   document.getElementById('kpiEl').innerHTML = `
-    <div class="kpi"><div class="kpi-label">Forecast</div><div class="kpi-value" style="color:var(--blue)">${fmtM(fc)}</div></div>
-    <div class="kpi"><div class="kpi-label">Actual</div><div class="kpi-value" style="color:var(--green)">${fmtM(ac)}</div></div>
+    <div class="kpi"><div class="kpi-label">Total Forecast</div><div class="kpi-value" style="color:var(--blue)">${fmtM(fc)}</div></div>
+    <div class="kpi"><div class="kpi-label">Total Actual</div><div class="kpi-value" style="color:var(--green)">${fmtM(ac)}</div></div>
     <div class="kpi"><div class="kpi-label">Utilization</div><div class="kpi-value">${fc > 0 ? ((ac/fc)*100).toFixed(1) : 0}%</div></div>
     <div class="kpi"><div class="kpi-label">Variance</div><div class="kpi-value" style="color:${varVal > 0 ? 'var(--red)' : 'var(--green)'}">${fmtM(varVal)}</div></div>
   `;
@@ -257,7 +266,7 @@ function renderCharts(data) {
 
 function renderTable(data) {
   let h = `<table class="pivot"><thead><tr>
-    <th>Activity</th><th>Account</th><th>Cat</th><th>User</th><th>Type</th><th>Month</th><th>Amount</th><th>Description</th>
+    <th>Activity</th><th>Account</th><th>Cat</th><th>User</th><th>Status</th><th>Type</th><th>Month</th><th>Amount</th><th>Description</th>
   </tr></thead><tbody>`;
   data.forEach(r => {
     h += `<tr>
@@ -265,9 +274,10 @@ function renderTable(data) {
       <td class="mono">${r['Budget Account'] || '-'}</td>
       <td>${r['Category (OPEX/CAPEX)'] || '-'}</td>
       <td>${r['User'] || '-'}</td>
+      <td>${r['Status'] || '-'}</td>
       <td><span class="type-badge ${r['Type'] === 'Forecast' ? 'type-fc' : 'type-ac'}">${r['Type']}</span></td>
       <td>${r['Month']}</td>
-      <td class="mono" style="text-align:right;">${r['Amount'].toLocaleString()}</td>
+      <td class="mono" style="text-align:right; font-weight:600">${r['Amount'].toLocaleString()}</td>
       <td style="font-size:11px; white-space:normal; max-width:200px;">${r['Description'] || '-'}</td>
     </tr>`;
   });
