@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PNGD Budget 2026 — Dashboard v2.5</title>
+<title>PNGD Budget 2026 — Dashboard v3.5</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -17,7 +17,6 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'IBM Plex Sans Thai', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
 
-  /* ── Header ── */
   .header { background: var(--text); color: #fff; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .header-title { font-size: 17px; font-weight: 600; }
   .header-sub { font-size: 12px; color: rgba(255,255,255,0.45); font-family: 'IBM Plex Mono', monospace; }
@@ -25,14 +24,13 @@
   #statusBadge { font-size: 11px; font-family: 'IBM Plex Mono', monospace; padding: 4px 10px; border-radius: 99px; background: rgba(255,255,255,0.1); }
   #statusBadge.ok { background: #14532d22; color: #4ade80; border: 1px solid #4ade8044; }
 
-  /* ── Filters ── */
   .filters { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 28px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   select { font-family: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); min-width: 130px; }
 
   .main { padding: 20px 28px; }
   .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
   .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
-  .kpi-label { font-size: 11px; color: var(--text3); text-transform: uppercase; margin-bottom: 6px; }
+  .kpi-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
   .kpi-value { font-size: 22px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; letter-spacing: -1px; }
   .kpi-value.blue { color: var(--blue); }
   .kpi-value.green { color: var(--green); }
@@ -40,7 +38,6 @@
   .badge-over { background: var(--red-light); color: var(--red); }
   .badge-under { background: var(--green-light); color: var(--green); }
 
-  /* ── Charts & Tables ── */
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
   @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; }
@@ -96,15 +93,15 @@
   <div id="execSummary" class="card" style="border-left: 5px solid var(--blue); display:none;">
     <div class="card-header">
       <span class="card-title">EXECUTION TRACKER: <span id="currentAC"></span></span>
-      <span id="monthHint" style="color:var(--blue); cursor:pointer; font-size:11px;" onclick="clearMonthFilter()"></span>
+      <span id="monthFilterHint" style="color:var(--blue); cursor:pointer; font-size:11px;" onclick="clearMonthFilter()"></span>
     </div>
     <div class="card-body">
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
-        <div style="background:#fdf2f2; padding:12px; border-radius:8px; text-align:center;"><div style="font-size:10px; color:#b91c1c;">STATUS: PR</div><div id="sumPR" style="font-size:18px; font-weight:700; color:#b91c1c;">0</div></div>
-        <div style="background:#fffbeb; padding:12px; border-radius:8px; text-align:center;"><div style="font-size:10px; color:#b45309;">STATUS: PO (FORECAST)</div><div id="sumPO" style="font-size:18px; font-weight:700; color:#b45309;">0</div></div>
-        <div style="background:#f0fdf4; padding:12px; border-radius:8px; text-align:center;"><div style="font-size:10px; color:#15803d;">STATUS: PACKED (ACTUAL)</div><div id="sumActual" style="font-size:18px; font-weight:700; color:#15803d;">0</div></div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: start;">
+        <div id="boxPR" style="background:#fdf2f2; padding:12px; border-radius:8px; text-align:center; min-height:100px;"></div>
+        <div id="boxPO" style="background:#fffbeb; padding:12px; border-radius:8px; text-align:center; min-height:100px;"></div>
+        <div id="boxActual" style="background:#f0fdf4; padding:12px; border-radius:8px; text-align:center; min-height:100px;"></div>
       </div>
-      <div style="background:var(--surface2); height:8px; border-radius:4px; margin-top:15px; overflow:hidden;">
+      <div style="background:var(--surface2); height:8px; border-radius:4px; margin-top:20px; overflow:hidden;">
         <div id="progressBar" style="background:var(--green); height:100%; width:0; transition:0.5s;"></div>
       </div>
       <div id="progressText" style="font-size:11px; text-align:right; margin-top:5px; color:var(--text2);"></div>
@@ -113,7 +110,7 @@
 
   <div class="two-col">
     <div class="card">
-      <div class="card-header"><span class="card-title">Monthly Performance (คลิกเลือกหลายเดือนได้)</span></div>
+      <div class="card-header"><span class="card-title">Monthly Performance (คลิกเลือกหลายแท่งเพื่อรวมยอดได้)</span></div>
       <div class="card-body"><div class="chart-wrap"><canvas id="barChart"></canvas></div></div>
     </div>
     <div class="card">
@@ -133,7 +130,7 @@ const MONTHS = ['01-Jan','02-Feb','03-Mar','04-Apr','05-May','06-June','07-July'
 const MLABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 let RAW = [];
 let barChart = null, donutChart = null;
-let selectedMonths = []; // 🔥 เก็บสถานะการคลิกหลายเดือน 
+let selectedMonths = []; 
 
 function fmtM(v) {
   if (v === 0) return '—';
@@ -182,33 +179,39 @@ function populateFilters() {
   setOpts('fUser', getUniq('User'));
 }
 
-function applyFilters() {
+function getFiltered(ignoreMonthSelection = false) {
   const ac = document.getElementById('fAC').value;
   const ba = document.getElementById('fBA').value;
   const cat = document.getElementById('fCat').value;
   const user = document.getElementById('fUser').value;
   const type = document.getElementById('fType').value;
   
-  const data = RAW.filter(r =>
+  return RAW.filter(r =>
     (!ac || r['Activity Code'] === ac) &&
     (!ba || String(r['Budget Account']) === ba) &&
     (!cat || r['Category (OPEX/CAPEX)'] === cat) &&
     (!user || r['User'] === user) &&
     (!type || r['Type'] === type) &&
-    (selectedMonths.length === 0 || selectedMonths.includes(r['Month'])) // 🔥 Filter ตาม Array เดือน 
+    (ignoreMonthSelection || selectedMonths.length === 0 || selectedMonths.includes(r['Month']))
   );
+}
 
-  renderKPIs(data);
-  renderChart(data);
-  renderDonut(data);
-  renderTable(data);
+function applyFilters() {
+  if (!RAW.length) return;
+  const dataFiltered = getFiltered(false);
+  const dataForChart = getFiltered(true);
+
+  renderKPIs(dataFiltered);
+  renderChart(dataForChart); 
+  renderDonut(dataFiltered);
+  renderTable(dataFiltered);
   checkAlerts(RAW);
-  updateExecSummary(data);
+  updateExecSummary(dataFiltered);
 
   const hint = document.getElementById('monthFilterHint');
   if(hint) {
     hint.style.display = selectedMonths.length > 0 ? 'inline' : 'none';
-    hint.innerHTML = `(เลือกอยู่: ${selectedMonths.map(m => m.split('-')[1]).join(', ')}) <u>[ล้าง]</u>`;
+    hint.innerHTML = `(ช่วงที่เลือก: ${selectedMonths.map(m => m.split('-')[1]).join(', ')}) <u>[ล้าง]</u>`;
   }
 }
 
@@ -226,12 +229,8 @@ function renderKPIs(data) {
   `;
 }
 
-function renderChart(data) {
-  const filterAC = document.getElementById('fAC').value;
-  const getSum = (type) => MONTHS.map(m => RAW.filter(r => r['Month'] === m && r['Type'] === type && 
-    (!filterAC || r['Activity Code'] === filterAC)
-  ).reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0));
-
+function renderChart(chartData) {
+  const getSum = (type) => MONTHS.map(m => chartData.filter(r => r['Month'] === m && r['Type'] === type).reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0));
   const fcVals = getSum('Forecast');
   const acVals = getSum('Actual');
   const uV = fcVals.map((f, i) => f > 0 ? (acVals[i]/f*100).toFixed(1) : 0);
@@ -258,7 +257,6 @@ function renderChart(data) {
         if (elements.length > 0) {
           const idx = elements[0].index;
           const month = MONTHS[idx];
-          // 🔥 Logic Multi-select: ถ้ามีแล้วเอาออก ไม่มีให้เพิ่ม 
           if (selectedMonths.includes(month)) {
             selectedMonths = selectedMonths.filter(m => m !== month);
           } else {
@@ -276,31 +274,55 @@ function renderChart(data) {
 }
 
 function updateExecSummary(data) {
-  const summaryEl = document.getElementById('execSummary');
-  const ac = document.getElementById('fAC').value;
-  if (!ac) { summaryEl.style.display = 'none'; return; }
-  
-  summaryEl.style.display = 'block';
-  document.getElementById('currentAC').innerText = ac;
+    const summaryEl = document.getElementById('execSummary');
+    const filterAC = document.getElementById('fAC').value;
+    if (!filterAC) { summaryEl.style.display = 'none'; return; }
+    summaryEl.style.display = 'block';
+    document.getElementById('currentAC').innerText = filterAC;
 
-  let pr = 0, po = 0, packed = 0;
-  data.forEach(r => {
-    const amt = parseFloat(r['Amount']) || 0;
-    if (r['Status'] === 'PR') pr += amt;
-    else if (r['Status'] === 'Packing Forecast') po += amt;
-    else if (r['Status'] === 'Packing') packed += amt;
-  });
+    let stats = {
+        'PR': { total: 0, items: [] },
+        'Packing Forecast': { total: 0, items: [] },
+        'Packing': { total: 0, items: [] }
+    };
 
-  document.getElementById('sumPR').innerText = fmtM(pr);
-  document.getElementById('sumPO').innerText = fmtM(po);
-  document.getElementById('sumActual').innerText = fmtM(packed);
-  
-  // 🔥 Target Logic: OP-26-01 ใช้ 1.42M, อันอื่นใช้ Forecast รวมของช่วงที่เลือก [cite: 1, 3]
-  const target = ac === 'OP-26-01' ? 1420000 : data.filter(r => r['Type'] === 'Forecast').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
-  const prog = target > 0 ? Math.min((packed / target) * 100, 100).toFixed(1) : 0;
-  
-  document.getElementById('progressBar').style.width = prog + '%';
-  document.getElementById('progressText').innerText = `ดำเนินการเบิกจ่ายแล้ว ${prog}% ของเป้าหมายงานในช่วงที่เลือก (Target: ${fmtM(target)})`;
+    const target = filterAC === 'OP-26-01' ? 1420000 : data.filter(r => r['Type'] === 'Forecast').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
+
+    data.forEach(r => {
+        const amt = parseFloat(r['Amount']) || 0;
+        const status = r['Status'];
+        if (stats[status] && amt > 0) {
+            stats[status].total += amt;
+            stats[status].items.push({ desc: r['Description'] || 'N/A', amt: amt, mon: r['Month']?.split('-')[1] });
+        }
+    });
+
+    const makeList = (title, color, sKey) => {
+        const s = stats[sKey];
+        let h = `<div style="font-size:10px; color:${color}; font-weight:600;">${title}</div>`;
+        h += `<div style="font-size:18px; font-weight:700; color:${color}; margin-bottom:8px;">${fmtM(s.total)}</div>`;
+        if (s.items.length > 0) {
+            h += `<div style="border-top:1px solid rgba(0,0,0,0.05); padding-top:5px; text-align:left;">`;
+            s.items.forEach(i => {
+                h += `<div style="font-size:9px; line-height:1.2; margin-bottom:3px; display:flex; justify-content:space-between; gap:4px;">
+                    <span style="color:var(--text2);">• ${i.desc} (${i.mon})</span>
+                    <span class="mono" style="font-weight:600;">${fmtM(i.amt)}</span>
+                </div>`;
+            });
+            h += `</div>`;
+        } else {
+            h += `<div style="font-size:9px; color:var(--text3);">— No Data —</div>`;
+        }
+        return h;
+    };
+
+    document.getElementById('boxPR').innerHTML = makeList('STATUS: PR', '#991b1b', 'PR');
+    document.getElementById('boxPO').innerHTML = makeList('STATUS: PO (FC)', '#92400e', 'Packing Forecast');
+    document.getElementById('boxActual').innerHTML = makeList('STATUS: PACKED', '#166534', 'Packing');
+
+    const progress = target > 0 ? Math.min((stats['Packing'].total / target) * 100, 100).toFixed(1) : 0;
+    document.getElementById('progressBar').style.width = progress + '%';
+    document.getElementById('progressText').innerText = `ดำเนินการแล้ว ${progress}% (เป้าหมายช่วงที่เลือก: ${fmtM(target)})`;
 }
 
 function renderTable(data) {
@@ -310,11 +332,10 @@ function renderTable(data) {
     if (!groups[key]) groups[key] = [];
     groups[key].push(r);
   });
-
-  let h = `<table class="pivot"><thead><tr><th>Activity</th><th>Account</th><th>Cat</th><th>User</th><th>Status</th><th>Desc</th><th>Type</th>${MLABELS.map(m=>`<th>${m.split('-')[1]}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
+  let h = `<table class="pivot"><thead><tr><th>Activity</th><th>Account</th><th>Cat</th><th>User</th><th>Status</th><th>Desc</th><th>Type</th>${MLABELS.map(m=>`<th>${m}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
   let gIdx = 0;
   Object.keys(groups).sort().forEach(accKey => {
-    const bgClass = gIdx % 2 === 0 ? 'bg-even' : 'bg-odd'; gIdx++;
+    const bgClass = gIdx++ % 2 === 0 ? 'bg-even' : 'bg-odd';
     const lines = {};
     groups[accKey].forEach(r => {
       const lKey = `${r['Type']}||${r['User']}||${r['Status']}||${r['Description']}`;
@@ -324,7 +345,6 @@ function renderTable(data) {
       }
       lines[lKey].months[r['Month']] += parseFloat(r['Amount']) || 0;
     });
-
     Object.values(lines).sort((a,b) => a.type === 'Forecast' ? -1 : 1).forEach(l => {
       const total = Object.values(l.months).reduce((a,b)=>a+b, 0);
       if (total === 0 && l.type !== 'Forecast') return;
