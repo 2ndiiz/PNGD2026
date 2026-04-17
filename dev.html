@@ -17,23 +17,24 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'IBM Plex Sans Thai', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
 
-  /* ── Header ── */
+  /* ── Header กลับมาตำแหน่งเดิม ── */
   .header { background: var(--text); color: #fff; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .header-left { display: flex; align-items: baseline; gap: 14px; }
   .header-title { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
   .header-sub { font-size: 12px; color: rgba(255,255,255,0.45); font-family: 'IBM Plex Mono', monospace; }
-  #loadBtn { background: var(--blue); color: #fff; border: none; padding: 7px 16px; border-radius: var(--radius); font-size: 13px; cursor: pointer; font-weight: 500; }
+  .header-right { display: flex; align-items: center; gap: 15px; }
+  #loadBtn { background: var(--blue); color: #fff; border: none; padding: 7px 16px; border-radius: var(--radius); font-size: 13px; cursor: pointer; font-weight: 500; transition: opacity .15s; }
   #statusBadge { font-size: 11px; font-family: 'IBM Plex Mono', monospace; padding: 4px 10px; border-radius: 99px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
   #statusBadge.ok { background: #14532d22; color: #4ade80; border: 1px solid #4ade8044; }
 
   /* ── Filters ── */
   .filters { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 28px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-  .filter-label { font-size: 12px; color: var(--text3); font-weight: 500; text-transform: uppercase; }
-  select { font-family: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); min-width: 130px; }
+  .filter-label { font-size: 12px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
+  select { font-family: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); min-width: 130px; cursor: pointer; }
+  .btn-clear { font-size: 11px; color: var(--blue); background: none; border: 1px solid var(--blue); padding: 4px 8px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+  .btn-clear:hover { background: var(--blue-light); }
 
   .main { padding: 20px 28px; }
-  
-  /* ── KPI Row ── */
   .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
   .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
   .kpi-label { font-size: 11px; color: var(--text3); text-transform: uppercase; margin-bottom: 6px; }
@@ -45,18 +46,14 @@
   .badge-over { background: var(--red-light); color: var(--red); }
   .badge-under { background: var(--green-light); color: var(--green); }
 
-  /* ── Two-col ── */
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
   @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
-  
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; }
-  .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text2); }
   .card-body { padding: 16px; }
   .chart-wrap { position: relative; width: 100%; height: 240px; }
 
-  /* ── Table ── */
-  .table-scroll { overflow-x: auto; max-height: 500px;}
   table.pivot { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
   table.pivot th { background: var(--surface2); color: var(--text2); font-weight: 600; padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10;}
   table.pivot th:nth-child(-n+7) { text-align: left; }
@@ -78,7 +75,7 @@
     <span class="header-sub">Forecast vs Actual</span>
   </div>
   <div class="header-right">
-    <span id="lastUpdated" style="font-size: 11px; color: #4ade80; font-family: 'IBM Plex Mono', monospace; margin-right: 15px;"></span>
+    <span id="lastUpdated" style="font-size: 11px; color: #4ade80; font-family: 'IBM Plex Mono', monospace;"></span>
     <div class="url-input-wrap">
       <input class="url-input" id="sheetUrl" placeholder="Google Sheet URL..." value="https://docs.google.com/spreadsheets/d/1Omvnc6JR4Ie0TIAz3DLON4zfdFICPSOTDMUKfCqk2U0">
     </div>
@@ -89,6 +86,7 @@
 
 <div class="filters">
   <span class="filter-label">Filter</span>
+  <button class="btn-clear" onclick="resetAllFilters()" style="margin-right: 5px;">ล้าง Filter ทั้งหมด</button>
   <select id="fAC" onchange="applyFilters()"><option value="">Activity Code ทั้งหมด</option></select>
   <select id="fBA" onchange="applyFilters()"><option value="">Budget Account ทั้งหมด</option></select>
   <select id="fCat" onchange="applyFilters()"><option value="">OPEX + CAPEX</option><option value="OPEX">OPEX</option><option value="CAPEX">CAPEX</option></select>
@@ -104,7 +102,7 @@
   <div id="execSummary" class="card" style="border-left: 5px solid var(--blue); display:none;">
     <div class="card-header">
       <span class="card-title">EXECUTION TRACKER: <span id="currentAC"></span></span>
-      <span id="monthFilterHint" style="color:var(--blue); cursor:pointer; font-size:11px;" onclick="clearMonthFilter()"></span>
+      <span id="execMonthHint" style="font-size:11px; color:var(--blue);"></span>
     </div>
     <div class="card-body">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: start;">
@@ -121,7 +119,10 @@
 
   <div class="two-col">
     <div class="card">
-      <div class="card-header"><span class="card-title">Forecast vs Actual รายเดือน</span></div>
+      <div class="card-header">
+        <span class="card-title">Forecast vs Actual รายเดือน</span>
+        <button class="btn-clear" onclick="clearMonthFilter()">ล้างการเลือกเดือน</button>
+      </div>
       <div class="card-body"><div class="chart-wrap"><canvas id="barChart"></canvas></div></div>
     </div>
     <div class="card">
@@ -131,10 +132,7 @@
   </div>
 
   <div class="card">
-    <div class="card-header">
-        <span class="card-title">DETAILED ANALYSIS (LINE BY LINE)</span>
-        <span id="rowCount" style="font-size:11px; color:var(--text3);"></span>
-    </div>
+    <div class="card-header"><span class="card-title">DETAILED ANALYSIS (LINE BY LINE)</span><span id="rowCount" style="font-size:11px; color:var(--text3);"></span></div>
     <div class="card-body" style="padding:0;"><div id="pivotEl" class="table-scroll"></div></div>
   </div>
 </div>
@@ -197,26 +195,29 @@ function populateFilters() {
   setOpts('fUser', getUniq('User'));
 }
 
-function getFiltered(ignoreMonth = false) {
+function applyFilters() {
   const ac = document.getElementById('fAC').value;
   const ba = document.getElementById('fBA').value;
   const cat = document.getElementById('fCat').value;
   const user = document.getElementById('fUser').value;
   const type = document.getElementById('fType').value;
   
-  return RAW.filter(r =>
+  const data = RAW.filter(r =>
     (!ac || r['Activity Code'] === ac) &&
     (!ba || String(r['Budget Account']) === ba) &&
     (!cat || r['Category (OPEX/CAPEX)'] === cat) &&
     (!user || r['User'] === user) &&
     (!type || r['Type'] === type) &&
-    (ignoreMonth || selectedMonths.length === 0 || selectedMonths.includes(r['Month']))
+    (selectedMonths.length === 0 || selectedMonths.includes(r['Month']))
   );
-}
 
-function applyFilters() {
-  const data = getFiltered(false);
-  const chartData = getFiltered(true);
+  const chartData = RAW.filter(r => 
+    (!ac || r['Activity Code'] === ac) &&
+    (!ba || String(r['Budget Account']) === ba) &&
+    (!cat || r['Category (OPEX/CAPEX)'] === cat) &&
+    (!user || r['User'] === user) &&
+    (!type || r['Type'] === type)
+  );
 
   renderKPIs(data);
   renderChart(chartData); 
@@ -225,13 +226,23 @@ function applyFilters() {
   checkAlerts(RAW);
   updateExecSummary(data);
 
-  if(selectedMonths.length > 0) {
-    document.getElementById('monthFilterHint').style.display = 'inline';
-    document.getElementById('monthFilterHint').innerHTML = `(${selectedMonths.map(m => m.split('-')[1]).join(', ')}) <u>[ล้าง]</u>`;
-  } else {
-    document.getElementById('monthFilterHint').style.display = 'none';
+  const hint = document.getElementById('execMonthHint');
+  if(hint) {
+    hint.innerHTML = selectedMonths.length > 0 ? `(ช่วง: ${selectedMonths.map(m => m.split('-')[1]).join(', ')})` : "";
   }
 }
+
+function resetAllFilters() {
+    document.getElementById('fAC').value = "";
+    document.getElementById('fBA').value = "";
+    document.getElementById('fCat').value = "";
+    document.getElementById('fUser').value = "";
+    document.getElementById('fType').value = "";
+    selectedMonths = [];
+    applyFilters();
+}
+
+function clearMonthFilter() { selectedMonths = []; applyFilters(); }
 
 function renderKPIs(data) {
   const fc = data.filter(r => r['Type'] === 'Forecast').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
@@ -299,7 +310,7 @@ function updateExecSummary(data) {
         if (s.i.length > 0) {
             h += `<div style="border-top:1px solid rgba(0,0,0,0.05); padding-top:8px; text-align:left;">`;
             s.i.forEach(item => {
-                h += `<div style="font-size:11px; line-height:1.3; margin-bottom:5px; display:flex; justify-content:space-between; gap:8px;">
+                h += `<div style="font-size:11px; line-height:1.4; margin-bottom:6px; display:flex; justify-content:space-between; gap:10px;">
                     <span style="color:var(--text2);">• ${item.d} (${item.m})</span>
                     <span class="mono" style="font-weight:600; flex-shrink:0;">${fmtM(item.a)}</span>
                 </div>`;
@@ -310,7 +321,6 @@ function updateExecSummary(data) {
     };
 
     document.getElementById('boxPR').innerHTML = makeBox('STATUS: PR', '#991b1b', 'PR');
-    // เปลี่ยนหัวข้อช่องกลางเป็น FORECAST ตามคำขอ
     document.getElementById('boxPO').innerHTML = makeBox('STATUS: FORECAST', '#92400e', 'Packing Forecast');
     document.getElementById('boxActual').innerHTML = makeBox('STATUS: PACKED (ACTUAL)', '#166534', 'Packing');
 
@@ -356,7 +366,6 @@ function checkAlerts(raw) {
   const b = document.getElementById('alertBox'); if(o.length>0) { b.innerHTML=`🚨 <b>Over Budget Warning:</b><br>${o.join('<br>')}`; b.style.display='block'; } else b.style.display='none';
 }
 
-function clearMonthFilter() { selectedMonths = []; applyFilters(); }
 window.onload = loadData;
 </script>
 </body>
