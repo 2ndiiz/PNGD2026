@@ -93,7 +93,6 @@
   table.pivot td.left { text-align: left; }
   table.pivot td.mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
   
-  /* 🔥 สีพื้นหลังสลับตามกลุ่ม Account Code */
   table.pivot tr.bg-even td { background-color: #ffffff; }
   table.pivot tr.bg-odd td { background-color: #f7f6f1; } 
   
@@ -108,7 +107,6 @@
   .cat-capex { background: #f3e8ff; color: #7c3aed; font-size: 10px; padding: 1px 6px; border-radius: 99px; }
   .desc-cell { max-width: 250px; white-space: normal; line-height: 1.4; font-size: 12px; }
 
-  /* ── Loading state ── */
   .loading-state { text-align: center; padding: 60px 20px; color: var(--text3); }
   .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; margin-bottom: 12px; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -127,7 +125,7 @@
   <div class="header-right">
     <span id="lastUpdated" style="font-size: 11px; color: #4ade80; font-family: 'IBM Plex Mono', monospace; margin-right: 15px;"></span>
     <div class="url-input-wrap">
-      <input class="url-input" id="sheetUrl" placeholder="วาง Google Sheet URL ที่นี่…" value="https://docs.google.com/spreadsheets/d/1Omvnc6JR4Ie0TIAz3DLON4zfdFICPSOTDMUKfCqk2U0">
+      <input class="url-input" id="sheetUrl" placeholder="วาง Google Sheet URL ที่นี่…" value="https://docs.google.com/spreadsheets/d/1SLO4HOK2NGqyMaMM2_hEd7aN8OeltML7HMX9SBD_7Bs/edit?usp=sharing">
     </div>
     <button id="loadBtn" onclick="loadData()">⟳ โหลดข้อมูล</button>
     <span id="statusBadge">ยังไม่ได้โหลด</span>
@@ -166,7 +164,7 @@ const MONTHS = ['01-Jan','02-Feb','03-Mar','04-Apr','05-May','06-June','07-July'
 const MLABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 let RAW = [];
 let barChart = null, donutChart = null;
-let selectedMonth = ""; // 🔥 เก็บค่าเวลาคลิกเดือน
+let selectedMonths = []; // 🔥 เปลี่ยนเป็น Array เพื่อเลือกได้หลายเดือน
 
 function extractSheetId(url) {
   const m = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
@@ -204,7 +202,6 @@ async function loadData() {
     RAW = parseGViz(json);
     setStatus(`✓ ${RAW.length} rows`, 'ok');
     
-    // 🔥 อัปเดตเวลาล่าสุด
     const now = new Date();
     document.getElementById('lastUpdated').innerText = `อัปเดตล่าสุด: ${now.toLocaleTimeString('th-TH')} น.`;
     
@@ -274,7 +271,7 @@ function getFiltered() {
     (!cat || r['Category (OPEX/CAPEX)'] === cat) &&
     (!user || r['User'] === user) &&
     (!type || r['Type'] === type) &&
-    (!selectedMonth || r['Month'] === selectedMonth) // 🔥 กรองเดือน
+    (selectedMonths.length === 0 || selectedMonths.includes(r['Month'])) // 🔥 กรองหลายเดือน
   );
 }
 
@@ -285,30 +282,26 @@ function applyFilters() {
   renderChart(data);
   renderDonut(data);
   renderTable(data);
-  checkAlerts(data); // 🔥 แจ้งเตือนงบเกิน
-  // 🔥 สั่งให้คำนวณส่วนสรุปผู้บริหารทุกครั้งที่มีการ Filter
-  updateExecSummary(data);
+  checkAlerts(data);
+  updateExecSummary(data); // 🔥 แจ้งเตือนงบเกิน + สรุปสถานะ
   
-  // แสดงคำใบ้ว่ากรองเดือนอยู่
   const hint = document.getElementById('monthFilterHint');
   if(hint) {
-     if(selectedMonth) { 
-         const monName = selectedMonth.split('-')[1] || selectedMonth;
+     if(selectedMonths.length > 0) { 
+         const monNames = selectedMonths.map(m => m.split('-')[1]).join(', ');
          hint.style.display = 'inline'; 
-         hint.innerHTML = `(กรองข้อมูลเฉพาะ: ${monName}) <span style="text-decoration:underline;">[ล้าง]</span>`; 
+         hint.innerHTML = `(กรองข้อมูล: ${monNames}) <span style="text-decoration:underline;">[ล้าง]</span>`; 
      } else { 
          hint.style.display = 'none'; 
      }
   }
 }
 
-// 🔥 ล้าง Filter กราฟ
 function clearMonthFilter() {
-    selectedMonth = "";
+    selectedMonths = [];
     applyFilters();
 }
 
-// 🔥 ระบบแจ้งเตือน Over Budget
 function checkAlerts(data) {
     const alertBox = document.getElementById('alertBox');
     if(!alertBox) return;
@@ -369,7 +362,6 @@ function renderKPIs(data) {
 function renderChart(data) {
   const fcVals = sumByMonth(data, 'Forecast', 'Amount');
   const acVals = sumByMonth(data, 'Actual', 'Amount');
-  
   const varPct = fcVals.map((f, i) => f > 0 ? (acVals[i] / f * 100).toFixed(1) : 0);
 
   if (barChart) barChart.destroy();
@@ -379,25 +371,33 @@ function renderChart(data) {
       labels: MLABELS,
       datasets: [
         { type: 'line', label: 'Utilization %', data: varPct, borderColor: '#b45309', yAxisID: 'yPct', tension: 0.3, pointRadius: 4, borderWidth: 2 },
-        { type: 'bar', label: 'Forecast', data: fcVals, backgroundColor: 'rgba(26,86,160,0.7)', borderRadius: 3, barPercentage: 0.85, categoryPercentage: 0.7, yAxisID: 'yAmt' },
-        { type: 'bar', label: 'Actual', data: acVals, backgroundColor: 'rgba(13,122,95,0.75)', borderRadius: 3, barPercentage: 0.85, categoryPercentage: 0.7, yAxisID: 'yAmt' }
+        { type: 'bar', label: 'Forecast', data: fcVals, backgroundColor: (c) => {
+            const m = MONTHS[c.dataIndex];
+            return selectedMonths.length === 0 || selectedMonths.includes(m) ? 'rgba(26,86,160,0.7)' : 'rgba(26,86,160,0.1)';
+          }, borderRadius: 3, barPercentage: 0.85, categoryPercentage: 0.7, yAxisID: 'yAmt' },
+        { type: 'bar', label: 'Actual', data: acVals, backgroundColor: (c) => {
+            const m = MONTHS[c.dataIndex];
+            return selectedMonths.length === 0 || selectedMonths.includes(m) ? 'rgba(13,122,95,0.75)' : 'rgba(13,122,95,0.1)';
+          }, borderRadius: 3, barPercentage: 0.85, categoryPercentage: 0.7, yAxisID: 'yAmt' }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      // 🔥 ทำให้กราฟกดได้
       onClick: (e, elements) => {
         if (elements.length > 0) {
           const idx = elements[0].index;
-          selectedMonth = MONTHS[idx];
+          const month = MONTHS[idx];
+          if (selectedMonths.includes(month)) {
+            selectedMonths = selectedMonths.filter(m => m !== month);
+          } else {
+            selectedMonths.push(month);
+          }
           applyFilters();
         }
       },
       plugins: {
         legend: { display: false },
-        tooltip: { 
-          callbacks: { label: c => ` ${c.dataset.label}: ${c.dataset.type === 'line' ? c.raw + '%' : '฿'+Math.round(c.raw).toLocaleString()}` } 
-        }
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.dataset.type === 'line' ? c.raw + '%' : '฿'+Math.round(c.raw).toLocaleString()}` } }
       },
       scales: {
         x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#888' }, border: { display: false } },
@@ -409,8 +409,8 @@ function renderChart(data) {
 }
 
 function renderDonut(data) {
-  const opex = data.filter(r => r['Category (OPEX/CAPEX)'] === 'OPEX').reduce((s,r) => s + (parseFloat(r['Amount']) || parseFloat(r['Forecast']) || parseFloat(r['Actual']) || 0), 0);
-  const capex = data.filter(r => r['Category (OPEX/CAPEX)'] === 'CAPEX').reduce((s,r) => s + (parseFloat(r['Amount']) || parseFloat(r['Forecast']) || parseFloat(r['Actual']) || 0), 0);
+  const opex = data.filter(r => r['Category (OPEX/CAPEX)'] === 'OPEX').reduce((s,r) => s + (parseFloat(r['Amount']) || 0), 0);
+  const capex = data.filter(r => r['Category (OPEX/CAPEX)'] === 'CAPEX').reduce((s,r) => s + (parseFloat(r['Amount']) || 0), 0);
   const total = opex + capex;
   const opexP = total > 0 ? ((opex/total)*100).toFixed(1) : 0;
   const capexP = total > 0 ? ((capex/total)*100).toFixed(1) : 0;
@@ -466,11 +466,9 @@ function renderTable(data) {
   const filterType = document.getElementById('fType').value;
 
   let groupIndex = 0;
-
   sortedKeys.forEach(accKey => {
     const rows = groups[accKey];
     const lines = {};
-    
     const bgClass = groupIndex % 2 === 0 ? 'bg-even' : 'bg-odd';
     groupIndex++;
     
@@ -480,13 +478,9 @@ function renderTable(data) {
       const status = r['Status'] || '—'; 
       const desc = r['Description'] || '—';
       const cat = r['Category (OPEX/CAPEX)'] || '—';
-      
       const lineKey = `${type}||${user}||${status}||${desc}||${cat}`;
       if (!lines[lineKey]) {
-        lines[lineKey] = {
-          ac: r['Activity Code'] || '—', ba: r['Budget Account'] || '—',
-          cat, user, status, desc, type, months: {}
-        };
+        lines[lineKey] = { ac: r['Activity Code'], ba: r['Budget Account'], cat, user, status, desc, type, months: {} };
         MONTHS.forEach(m => lines[lineKey].months[m] = 0);
       }
       lines[lineKey].months[r['Month']] += (parseFloat(r['Amount']) || 0);
@@ -499,7 +493,6 @@ function renderTable(data) {
     const renderLine = (l, isFc) => {
       const total = Object.values(l.months).reduce((a,b)=>a+b, 0);
       if(total === 0 && !isFc) return; 
-
       const baFmt = String(l.ba).replace(/\.0$/, '').replace(/(\d+)\.?\d*E\+?(\d+)/, (_, m, e) => String(parseInt(m) * Math.pow(10, parseInt(e)-7)));
       const catHtml = l.cat === 'OPEX' ? '<span class="cat-opex">OPEX</span>' : l.cat === 'CAPEX' ? '<span class="cat-capex">CAPEX</span>' : l.cat;
 
@@ -527,41 +520,34 @@ function renderTable(data) {
 function renderApp() {
   document.getElementById('appContent').innerHTML = `
     <div id="alertBox" style="display:none; background:#fee2e2; color:#b91c1c; padding:12px 16px; border-radius:var(--radius); margin-bottom:16px; font-size:13px; border-left:4px solid #b91c1c;"></div>
-    
     <div class="kpi-row" id="kpiEl"></div>
-    <div id="execSummary" class="card" style="margin-bottom: 20px; border-left: 5px solid var(--blue); display:none;">
-  <div class="card-header">
-    <span class="card-title">EXECUTION TRACKER: OP-26-01 (Target 3M: 1.42M ฿)</span>
-  </div>
-  <div class="card-body">
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
-      
-      <div style="background: #fdf2f2; padding: 12px; border-radius: var(--radius); border: 1px solid #fee2e2; text-align: center;">
-        <div style="font-size: 10px; color: #991b1b; font-weight: 600;">STATUS: PR</div>
-        <div id="sumPR" style="font-size: 18px; font-weight: 700; color: #b91c1c;">0</div>
-        <div style="font-size: 9px; color: #7f1d1d;">ออกใบขอซื้อแล้ว</div>
-      </div>
-
-      <div style="background: #fffbeb; padding: 12px; border-radius: var(--radius); border: 1px solid #fef3c7; text-align: center;">
-        <div style="font-size: 10px; color: #92400e; font-weight: 600;">STATUS: PO (FORECAST)</div>
-        <div id="sumPO" style="font-size: 18px; font-weight: 700; color: #b45309;">0</div>
-        <div style="font-size: 9px; color: #78350f;">รอจบงาน/Packing</div>
-      </div>
-
-      <div style="background: #f0fdf4; padding: 12px; border-radius: var(--radius); border: 1px solid #dcfce7; text-align: center;">
-        <div style="font-size: 10px; color: #166534; font-weight: 600;">STATUS: PACKED (ACTUAL)</div>
-        <div id="sumActual" style="font-size: 18px; font-weight: 700; color: #15803d;">0</div>
-        <div style="font-size: 9px; color: #14532d;">จบงานจริง/รอจ่ายเงิน</div>
-      </div>
-
-    </div>
     
-    <div style="background: var(--surface2); height: 8px; border-radius: 4px; overflow: hidden; margin-top: 15px;">
-      <div id="progressBar" style="width: 0%; height: 100%; background: var(--green); transition: width 0.5s;"></div>
+    <div id="execSummary" class="card" style="margin-bottom: 20px; border-left: 5px solid var(--blue); display:none;">
+      <div class="card-header">
+        <span class="card-title">EXECUTION TRACKER: <span id="currentAC"></span></span>
+      </div>
+      <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
+          <div style="background: #fdf2f2; padding: 12px; border-radius: var(--radius); border: 1px solid #fee2e2; text-align: center;">
+            <div style="font-size: 10px; color: #991b1b; font-weight: 600;">STATUS: PR</div>
+            <div id="sumPR" style="font-size: 18px; font-weight: 700; color: #b91c1c;">0</div>
+          </div>
+          <div style="background: #fffbeb; padding: 12px; border-radius: var(--radius); border: 1px solid #fef3c7; text-align: center;">
+            <div style="font-size: 10px; color: #92400e; font-weight: 600;">STATUS: PO (FORECAST)</div>
+            <div id="sumPO" style="font-size: 18px; font-weight: 700; color: #b45309;">0</div>
+          </div>
+          <div style="background: #f0fdf4; padding: 12px; border-radius: var(--radius); border: 1px solid #dcfce7; text-align: center;">
+            <div style="font-size: 10px; color: #166534; font-weight: 600;">STATUS: PACKED (ACTUAL)</div>
+            <div id="sumActual" style="font-size: 18px; font-weight: 700; color: #15803d;">0</div>
+          </div>
+        </div>
+        <div style="background: var(--surface2); height: 8px; border-radius: 4px; overflow: hidden; margin-top: 15px;">
+          <div id="progressBar" style="width: 0%; height: 100%; background: var(--green); transition: width 0.5s;"></div>
+        </div>
+        <div id="progressText" style="font-size: 11px; color: var(--text2); margin-top: 5px; text-align: right;"></div>
+      </div>
     </div>
-    <div id="progressText" style="font-size: 11px; color: var(--text2); margin-top: 5px; text-align: right;"></div>
-  </div>
-</div>
+
     <div class="two-col">
       <div class="card">
         <div class="card-header">
@@ -573,7 +559,7 @@ function renderApp() {
           </div>
         </div>
         <div class="card-body">
-          <div class="chart-wrap"><canvas id="barChart" role="img" aria-label="Monthly Forecast vs Actual"></canvas></div>
+          <div class="chart-wrap"><canvas id="barChart" role="img"></canvas></div>
         </div>
       </div>
       <div class="card">
@@ -582,14 +568,13 @@ function renderApp() {
           <div class="legend" id="donutLegend"></div>
         </div>
         <div class="card-body">
-          <div class="chart-wrap"><canvas id="donutChart" role="img" aria-label="OPEX vs CAPEX donut chart"></canvas></div>
+          <div class="chart-wrap"><canvas id="donutChart" role="img"></canvas></div>
         </div>
       </div>
     </div>
     <div class="card">
       <div class="card-header">
         <span class="card-title">DETAILED ANALYSIS (LINE BY LINE)</span>
-        <span style="font-size:11px;color:var(--text3);" id="rowCount"></span>
       </div>
       <div class="card-body" style="padding:0;">
         <div class="table-scroll" id="pivotEl"></div>
@@ -597,21 +582,23 @@ function renderApp() {
     </div>
   `;
 }
+
 function updateExecSummary(data) {
     const summaryEl = document.getElementById('execSummary');
-    // กรองเฉพาะ OP-26-01 เพื่อเทียบกับเป้า 3M ในไฟล์งบประมาณ 
-    const opData = data.filter(r => r['Activity Code'] === 'OP-26-01');
+    const filterAC = document.getElementById('fAC').value;
     
-    if (opData.length === 0) { 
+    if (!filterAC) { 
         summaryEl.style.display = 'none'; 
         return; 
     }
     summaryEl.style.display = 'block';
+    document.getElementById('currentAC').innerText = filterAC;
 
     let totalPR = 0, totalPO = 0, totalActual = 0;
-    const target3M = 1420000; // เป้าหมาย 1.42 ล้านบาท จาก Budget 3M 2026 
+    // ใช้ Target ตามไฟล์ PDF สำหรับ OP-26-01 ถ้าเป็น code อื่นใช้ยอด Forecast รวม
+    const target = filterAC === 'OP-26-01' ? 1420000 : data.filter(r => r['Type'] === 'Forecast').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
 
-    opData.forEach(r => {
+    data.forEach(r => {
         const amt = parseFloat(r['Amount']) || 0;
         if (r['Status'] === 'PR') totalPR += amt;
         if (r['Status'] === 'Packing Forecast') totalPO += amt;
@@ -622,11 +609,11 @@ function updateExecSummary(data) {
     document.getElementById('sumPO').innerText = fmtM(totalPO);
     document.getElementById('sumActual').innerText = fmtM(totalActual);
     
-    // คำนวณความคืบหน้าการใช้เงินจริงเทียบเป้า 1.42M 
-    const progress = Math.min((totalActual / target3M) * 100, 100).toFixed(1);
+    const progress = target > 0 ? Math.min((totalActual / target) * 100, 100).toFixed(1) : 0;
     document.getElementById('progressBar').style.width = progress + '%';
-    document.getElementById('progressText').innerText = `เบิกจ่ายจริงแล้ว ${progress}% ของแผน 3 เดือนแรก (1.42M)`;
+    document.getElementById('progressText').innerText = `ดำเนินการไปแล้ว ${progress}% ของแผนงานช่วงที่เลือก (Target: ${fmtM(target)})`;
 }
+
 window.onload = () => {
   loadData();
 };
