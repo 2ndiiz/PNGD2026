@@ -3,66 +3,120 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PNGD Budget 2026 — Dashboard</title>
+<title>PNGD Budget 2026 — Dashboard v4.2</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f4f3ef; --surface: #ffffff; --surface2: #f0efe9; --border: #dddbd3;
-    --text: #1a1917; --text2: #6b6860; --text3: #9e9c95;
-    --blue: #1a56a0; --blue-light: #e8f0fb; --green: #0d7a5f; --green-light: #e4f5ef;
-    --amber: #b45309; --red: #b91c1c; --red-light: #fee2e2;
-    --radius: 8px; --radius-lg: 12px;
+    --bg: #f4f3ef;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: #dddbd3;
+    --text: #1a1917;
+    --text2: #6b6860;
+    --text3: #9e9c95;
+    --blue: #1a56a0;
+    --blue-light: #e8f0fb;
+    --green: #0d7a5f;
+    --green-light: #e4f5ef;
+    --amber: #b45309;
+    --amber-light: #fef3c7;
+    --red: #b91c1c;
+    --red-light: #fee2e2;
+    --radius: 8px;
+    --radius-lg: 12px;
   }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'IBM Plex Sans Thai', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
 
-  /* ── Header กลับมาตำแหน่งเดิม ── */
+  /* ── Header ── */
   .header { background: var(--text); color: #fff; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .header-left { display: flex; align-items: baseline; gap: 14px; }
   .header-title { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
   .header-sub { font-size: 12px; color: rgba(255,255,255,0.45); font-family: 'IBM Plex Mono', monospace; }
   .header-right { display: flex; align-items: center; gap: 15px; }
-  #loadBtn { background: var(--blue); color: #fff; border: none; padding: 7px 16px; border-radius: var(--radius); font-size: 13px; cursor: pointer; font-weight: 500; transition: opacity .15s; }
+  #loadBtn { background: var(--blue); color: #fff; border: none; padding: 7px 16px; border-radius: var(--radius); font-size: 13px; font-family: inherit; cursor: pointer; font-weight: 500; transition: opacity .15s; }
+  #loadBtn:hover { opacity: .85; }
   #statusBadge { font-size: 11px; font-family: 'IBM Plex Mono', monospace; padding: 4px 10px; border-radius: 99px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
   #statusBadge.ok { background: #14532d22; color: #4ade80; border: 1px solid #4ade8044; }
+  #statusBadge.err { background: #7f1d1d22; color: #f87171; border: 1px solid #f8717144; }
 
   /* ── Filters ── */
   .filters { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 28px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .filter-label { font-size: 12px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
-  select { font-family: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); min-width: 130px; cursor: pointer; }
-  .btn-clear { font-size: 11px; color: var(--blue); background: none; border: 1px solid var(--blue); padding: 4px 8px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+  select { font-family: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); cursor: pointer; min-width: 130px; }
+  select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+  
+  .btn-clear { font-family: inherit; font-size: 11px; color: var(--blue); border: 1px solid var(--blue); background: var(--surface); padding: 4px 10px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
   .btn-clear:hover { background: var(--blue-light); }
 
+  /* ── Main layout ── */
   .main { padding: 20px 28px; }
+
+  /* ── KPI row ── */
   .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
   .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
-  .kpi-label { font-size: 11px; color: var(--text3); text-transform: uppercase; margin-bottom: 6px; }
+  .kpi-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
   .kpi-value { font-size: 22px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; letter-spacing: -1px; }
   .kpi-value.blue { color: var(--blue); }
   .kpi-value.green { color: var(--green); }
-  .kpi-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .kpi-sub { font-size: 11px; color: var(--text3); margin-top: 4px; font-family: 'IBM Plex Mono', monospace; }
   .kpi-badge { display: inline-block; font-size: 11px; padding: 2px 9px; border-radius: 99px; font-weight: 500; font-family: 'IBM Plex Mono', monospace; }
   .badge-over { background: var(--red-light); color: var(--red); }
   .badge-under { background: var(--green-light); color: var(--green); }
+  .badge-zero { background: var(--surface2); color: var(--text3); }
 
+  /* ── Execution Tracker ── */
+  .tracker-box { padding: 16px; border-radius: var(--radius); text-align: center; }
+  .tracker-title { font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+  .tracker-val { font-size: 22px; font-weight: 700; margin-bottom: 12px; font-family: 'IBM Plex Mono', monospace; }
+  .tracker-list { border-top: 1px solid rgba(0,0,0,0.05); padding-top: 12px; text-align: left; }
+  .tracker-item { font-size: 11px; line-height: 1.5; margin-bottom: 6px; display: flex; justify-content: space-between; gap: 12px; color: var(--text2); }
+  .tracker-item-val { font-family: 'IBM Plex Mono', monospace; font-weight: 600; color: var(--text); }
+
+  /* ── Two-col layout ── */
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
   @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* ── Cards ── */
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; }
   .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text2); }
+  .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--text2); display: flex; align-items: center; gap: 10px; }
   .card-body { padding: 16px; }
+
+  /* ── Chart ── */
   .chart-wrap { position: relative; width: 100%; height: 240px; }
 
+  /* ── Legend ── */
+  .legend { display: flex; gap: 14px; font-size: 11px; color: var(--text2); }
+  .leg { display: flex; align-items: center; gap: 5px; }
+  .leg-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── Pivot table ── */
+  .table-scroll { overflow-x: auto; max-height: 600px;}
   table.pivot { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
-  table.pivot th { background: var(--surface2); color: var(--text2); font-weight: 600; padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10;}
+  table.pivot th { background: var(--surface2); color: var(--text2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10;}
   table.pivot th:nth-child(-n+7) { text-align: left; }
-  table.pivot td { padding: 6px 10px; text-align: right; border-bottom: 1px solid #f0ede6; }
-  table.pivot tr.bg-odd td { background-color: #f7f6f1; }
+  table.pivot td { padding: 6px 10px; text-align: right; border-bottom: 1px solid #f0ede6; vertical-align: top; color: var(--text); }
+  table.pivot td.left { text-align: left; }
+  table.pivot td.mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  
+  table.pivot tr.bg-even td { background-color: #ffffff; }
+  table.pivot tr.bg-odd td { background-color: #f7f6f1; } 
+  
   table.pivot tr.forecast-row td { color: var(--blue); } 
   table.pivot tr.actual-row td { color: var(--green); }
-  .mono { font-family: 'IBM Plex Mono', monospace; }
+  table.pivot tr:hover td { background-color: var(--blue-light) !important; }
+  
+  .type-badge { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 99px; font-weight: 500; }
+  .type-fc { background: var(--blue-light); color: var(--blue); }
+  .type-ac { background: var(--green-light); color: var(--green); }
+  .cat-opex { background: var(--amber-light); color: var(--amber); font-size: 10px; padding: 1px 6px; border-radius: 99px; }
+  .cat-capex { background: #f3e8ff; color: #7c3aed; font-size: 10px; padding: 1px 6px; border-radius: 99px; }
+  .desc-cell { max-width: 250px; white-space: normal; line-height: 1.4; font-size: 12px; }
 
+  /* ── URL Input ── */
   .url-input-wrap { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius); padding: 4px 12px; min-width: 320px; }
   .url-input { background: transparent; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: 'IBM Plex Mono', monospace; flex: 1; outline: none; }
 </style>
@@ -86,7 +140,7 @@
 
 <div class="filters">
   <span class="filter-label">Filter</span>
-  <button class="btn-clear" onclick="resetAllFilters()" style="margin-right: 5px;">ล้าง Filter ทั้งหมด</button>
+  <button class="btn-clear" onclick="resetAllFilters()" style="margin-right: 10px;">ล้าง Filter ทั้งหมด</button>
   <select id="fAC" onchange="applyFilters()"><option value="">Activity Code ทั้งหมด</option></select>
   <select id="fBA" onchange="applyFilters()"><option value="">Budget Account ทั้งหมด</option></select>
   <select id="fCat" onchange="applyFilters()"><option value="">OPEX + CAPEX</option><option value="OPEX">OPEX</option><option value="CAPEX">CAPEX</option></select>
@@ -95,44 +149,56 @@
 </div>
 
 <div class="main">
-  <div id="alertBox" style="display:none; background:#fee2e2; color:#b91c1c; padding:12px 16px; border-radius:var(--radius); margin-bottom:16px; font-size:13px; border-left:4px solid #b91c1c;"></div>
+  <div id="alertBox" style="display:none; background:#fee2e2; color:#b91c1c; padding:12px 16px; border-radius:var(--radius); margin-bottom:16px; font-size:13px; border-left:4px solid #b91c1c; line-height: 1.5;"></div>
   
   <div class="kpi-row" id="kpiEl"></div>
 
   <div id="execSummary" class="card" style="border-left: 5px solid var(--blue); display:none;">
     <div class="card-header">
       <span class="card-title">EXECUTION TRACKER: <span id="currentAC"></span></span>
-      <span id="execMonthHint" style="font-size:11px; color:var(--blue);"></span>
+      <span id="execMonthHint" style="font-size:11px; color:var(--blue); font-weight:500;"></span>
     </div>
     <div class="card-body">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: start;">
-        <div id="boxPR" style="background:#fdf2f2; padding:15px; border-radius:8px; text-align:center;"></div>
-        <div id="boxPO" style="background:#fffbeb; padding:15px; border-radius:8px; text-align:center;"></div>
-        <div id="boxActual" style="background:#f0fdf4; padding:15px; border-radius:8px; text-align:center;"></div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: start;">
+        <div id="boxPR"></div>
+        <div id="boxPO"></div>
+        <div id="boxActual"></div>
       </div>
-      <div style="background:var(--surface2); height:8px; border-radius:4px; margin-top:20px; overflow:hidden;">
-        <div id="progressBar" style="background:var(--green); height:100%; width:0; transition:0.5s;"></div>
+      <div style="background:var(--surface2); height:8px; border-radius:4px; margin-top:20px; overflow:hidden; border:1px solid var(--border);">
+        <div id="progressBar" style="background:var(--green); height:100%; width:0; transition:0.6s cubic-bezier(0.1, 0.7, 0.1, 1);"></div>
       </div>
-      <div id="progressText" style="font-size:11px; text-align:right; margin-top:5px; color:var(--text2);"></div>
+      <div id="progressText" style="font-size:11px; text-align:right; margin-top:8px; color:var(--text2); font-weight:500;"></div>
     </div>
   </div>
 
   <div class="two-col">
     <div class="card">
       <div class="card-header">
-        <span class="card-title">Forecast vs Actual รายเดือน</span>
-        <button class="btn-clear" onclick="clearMonthFilter()">ล้างการเลือกเดือน</button>
+        <span class="card-title">
+          Forecast vs Actual รายเดือน 
+          <button class="btn-clear" onclick="clearMonthFilter()" style="margin-left: 10px;">ล้างการเลือกเดือน</button>
+        </span>
+        <div class="legend">
+            <div class="leg"><span class="leg-dot" style="background:#b45309; height:3px; width:12px;"></span>Util %</div>
+            <div class="leg"><span class="leg-dot" style="background:#1a56a0;"></span>Forecast</div>
+            <div class="leg"><span class="leg-dot" style="background:#0d7a5f;"></span>Actual</div>
+        </div>
       </div>
       <div class="card-body"><div class="chart-wrap"><canvas id="barChart"></canvas></div></div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">OPEX / CAPEX สัดส่วน</span><div id="donutLegend" style="font-size:11px; color:var(--text2); display:flex; gap:10px;"></div></div>
+      <div class="card-header">
+        <span class="card-title">OPEX / CAPEX สัดส่วน</span>
+        <div id="donutLegend" class="legend"></div>
+      </div>
       <div class="card-body"><div class="chart-wrap"><canvas id="donutChart"></canvas></div></div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-header"><span class="card-title">DETAILED ANALYSIS (LINE BY LINE)</span><span id="rowCount" style="font-size:11px; color:var(--text3);"></span></div>
+    <div class="card-header">
+      <span class="card-title">DETAILED ANALYSIS (LINE BY LINE) <span id="rowCount" style="font-size:11px; color:var(--text3); font-weight: normal; margin-left: 8px;"></span></span>
+    </div>
     <div class="card-body" style="padding:0;"><div id="pivotEl" class="table-scroll"></div></div>
   </div>
 </div>
@@ -195,29 +261,26 @@ function populateFilters() {
   setOpts('fUser', getUniq('User'));
 }
 
-function applyFilters() {
+function getFiltered(ignoreMonth = false) {
   const ac = document.getElementById('fAC').value;
   const ba = document.getElementById('fBA').value;
   const cat = document.getElementById('fCat').value;
   const user = document.getElementById('fUser').value;
   const type = document.getElementById('fType').value;
   
-  const data = RAW.filter(r =>
+  return RAW.filter(r =>
     (!ac || r['Activity Code'] === ac) &&
     (!ba || String(r['Budget Account']) === ba) &&
     (!cat || r['Category (OPEX/CAPEX)'] === cat) &&
     (!user || r['User'] === user) &&
     (!type || r['Type'] === type) &&
-    (selectedMonths.length === 0 || selectedMonths.includes(r['Month']))
+    (ignoreMonth || selectedMonths.length === 0 || selectedMonths.includes(r['Month']))
   );
+}
 
-  const chartData = RAW.filter(r => 
-    (!ac || r['Activity Code'] === ac) &&
-    (!ba || String(r['Budget Account']) === ba) &&
-    (!cat || r['Category (OPEX/CAPEX)'] === cat) &&
-    (!user || r['User'] === user) &&
-    (!type || r['Type'] === type)
-  );
+function applyFilters() {
+  const data = getFiltered(false);
+  const chartData = getFiltered(true);
 
   renderKPIs(data);
   renderChart(chartData); 
@@ -257,8 +320,8 @@ function renderKPIs(data) {
   document.getElementById('kpiEl').innerHTML = `
     <div class="kpi"><div class="kpi-label">Total Forecast</div><div class="kpi-value blue">${fmtM(fc)}</div><div class="kpi-sub">฿${fmtN(fc)}</div></div>
     <div class="kpi"><div class="kpi-label">Total Actual</div><div class="kpi-value green">${fmtM(ac)}</div><div class="kpi-sub">฿${fmtN(ac)}</div></div>
-    <div class="kpi"><div class="kpi-label">Utilization</div><div class="kpi-value">${pct}%</div><div class="kpi-sub">of budget used YTD</div></div>
-    <div class="kpi"><div class="kpi-label">Variance</div><div class="kpi-value" style="font-size:16px;">${varBadge}</div><div class="kpi-sub">฿${fmtN(Math.abs(variance))}</div></div>
+    <div class="kpi"><div class="kpi-label">Utilization</div><div class="kpi-value">${pct}%</div><div class="kpi-sub">of budget used</div></div>
+    <div class="kpi"><div class="kpi-label">Variance</div><div class="kpi-value">${varBadge}</div><div class="kpi-sub">฿${fmtN(Math.abs(variance))}</div></div>
     <div class="kpi"><div class="kpi-label">Transactions</div><div class="kpi-value">${data.length}</div><div class="kpi-sub">rows in selection</div></div>
   `;
 }
@@ -274,8 +337,8 @@ function renderChart(cData) {
       labels: MLABELS,
       datasets: [
         { type: 'line', label: 'Util %', data: uV, borderColor: '#b45309', yAxisID: 'yP', tension: 0.3, pointRadius: 4 },
-        { type: 'bar', label: 'Forecast', data: fV, yAxisID: 'yA', backgroundColor: (c) => selectedMonths.length === 0 || selectedMonths.includes(MONTHS[c.dataIndex]) ? 'rgba(26,86,160,0.7)' : 'rgba(26,86,160,0.15)', borderRadius: 4 },
-        { type: 'bar', label: 'Actual', data: aV, yAxisID: 'yA', backgroundColor: (c) => selectedMonths.length === 0 || selectedMonths.includes(MONTHS[c.dataIndex]) ? 'rgba(13,122,95,0.75)' : 'rgba(13,122,95,0.15)', borderRadius: 4 }
+        { type: 'bar', label: 'Forecast', data: fV, yAxisID: 'yA', backgroundColor: (c) => selectedMonths.length === 0 || selectedMonths.includes(MONTHS[c.dataIndex]) ? 'rgba(26,86,160,0.75)' : 'rgba(26,86,160,0.15)', borderRadius: 4 },
+        { type: 'bar', label: 'Actual', data: aV, yAxisID: 'yA', backgroundColor: (c) => selectedMonths.length === 0 || selectedMonths.includes(MONTHS[c.dataIndex]) ? 'rgba(13,122,95,0.8)' : 'rgba(13,122,95,0.15)', borderRadius: 4 }
       ]
     },
     options: {
@@ -286,6 +349,103 @@ function renderChart(cData) {
   });
 }
 
+function renderDonut(data) {
+  const opex = data.filter(r => r['Category (OPEX/CAPEX)'] === 'OPEX').reduce((s,r)=>s+(parseFloat(r['Amount'])||0),0);
+  const capex = data.filter(r => r['Category (OPEX/CAPEX)'] === 'CAPEX').reduce((s,r)=>s+(parseFloat(r['Amount'])||0),0);
+  const tot = opex + capex;
+  const opexP = tot > 0 ? ((opex/tot)*100).toFixed(1) : '0.0';
+  const capexP = tot > 0 ? ((capex/tot)*100).toFixed(1) : '0.0';
+
+  if(donutChart) donutChart.destroy();
+  donutChart = new Chart(document.getElementById('donutChart'), { 
+    type:'doughnut', 
+    data:{ labels:['OPEX','CAPEX'], datasets:[{ data:[opex,capex], backgroundColor:['#b4530977','#7c3aed77'], borderColor:['#b45309','#7c3aed'], borderWidth:1.5 }]}, 
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'70%', plugins: { legend: { display: false } } }
+  });
+
+  document.getElementById('donutLegend').innerHTML = `
+    <div class="leg"><span class="leg-dot" style="background:#b45309;"></span>OPEX ${opexP}% — ${fmtM(opex)}</div>
+    <div class="leg"><span class="leg-dot" style="background:#7c3aed;"></span>CAPEX ${capexP}% — ${fmtM(capex)}</div>
+  `;
+}
+
+function renderTable(data) {
+  const groups = {};
+  data.forEach(r => {
+    const ac = r['Activity Code'] || '—';
+    const ba = r['Budget Account'] || '—';
+    const accKey = `${ac}||${ba}`;
+    if (!groups[accKey]) groups[accKey] = [];
+    groups[accKey].push(r);
+  });
+
+  let html = `<table class="pivot">
+    <thead><tr>
+      <th class="left" style="min-width:85px;">Activity</th>
+      <th class="left" style="min-width:90px;">Account</th>
+      <th class="left" style="min-width:55px;">Cat</th>
+      <th class="left" style="min-width:60px;">User</th>
+      <th class="left" style="min-width:60px;">Status</th>
+      <th class="left" style="min-width:180px;">Description</th>
+      <th class="left" style="min-width:70px;">Type</th>
+      ${MLABELS.map(m => `<th style="min-width:68px;">${m}</th>`).join('')}
+      <th style="min-width:80px;">Total</th>
+    </tr></thead><tbody>`;
+
+  const sortedKeys = Object.keys(groups).sort();
+  let groupIndex = 0;
+
+  sortedKeys.forEach(accKey => {
+    const rows = groups[accKey];
+    const lines = {};
+    const bgClass = groupIndex % 2 === 0 ? 'bg-even' : 'bg-odd';
+    groupIndex++;
+    
+    rows.forEach(r => {
+      const type = r['Type'] || '—';
+      const user = r['User'] || '—';
+      const status = r['Status'] || '—'; 
+      const desc = r['Description'] || '—';
+      const cat = r['Category (OPEX/CAPEX)'] || '—';
+      
+      const lineKey = `${type}||${user}||${status}||${desc}||${cat}`;
+      if (!lines[lineKey]) {
+        lines[lineKey] = {
+          ac: r['Activity Code'] || '—', ba: r['Budget Account'] || '—',
+          cat, user, status, desc, type, months: {}
+        };
+        MONTHS.forEach(m => lines[lineKey].months[m] = 0);
+      }
+      lines[lineKey].months[r['Month']] += parseFloat(r['Amount']) || 0;
+    });
+
+    Object.values(lines).sort((a,b) => a.type === 'Forecast' ? -1 : 1).forEach(l => {
+      const total = Object.values(l.months).reduce((a,b)=>a+b, 0);
+      if (total === 0 && l.type !== 'Forecast') return; 
+
+      const baFmt = String(l.ba).replace(/\.0$/, '').replace(/(\d+)\.?\d*E\+?(\d+)/, (_, m, e) => String(parseInt(m) * Math.pow(10, parseInt(e)-7)));
+      const catHtml = l.cat === 'OPEX' ? '<span class="cat-opex">OPEX</span>' : l.cat === 'CAPEX' ? '<span class="cat-capex">CAPEX</span>' : l.cat;
+      const typeHtml = `<span class="type-badge ${l.type === 'Forecast' ? 'type-fc' : 'type-ac'}">${l.type}</span>`;
+
+      html += `<tr class="${l.type === 'Forecast' ? 'forecast-row' : 'actual-row'} ${bgClass}">
+        <td class="left mono">${l.ac}</td>
+        <td class="left mono">${baFmt}</td>
+        <td class="left">${catHtml}</td>
+        <td class="left">${l.user}</td>
+        <td class="left">${l.status}</td>
+        <td class="left"><div class="desc-cell">${l.desc}</div></td>
+        <td class="left">${typeHtml}</td>
+        ${MONTHS.map(m => `<td class="mono" style="text-align:right">${l.months[m] ? fmtN(l.months[m]) : '—'}</td>`).join('')}
+        <td class="mono" style="text-align:right; font-weight:600">${fmtN(total)}</td>
+      </tr>`;
+    });
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('pivotEl').innerHTML = html;
+  document.getElementById('rowCount').innerText = `${data.length} rows`;
+}
+
 function updateExecSummary(data) {
     const filterAC = document.getElementById('fAC').value;
     if (!filterAC) { document.getElementById('execSummary').style.display = 'none'; return; }
@@ -293,77 +453,91 @@ function updateExecSummary(data) {
     document.getElementById('currentAC').innerText = filterAC;
 
     let stats = { 'PR': { t: 0, i: [] }, 'Packing Forecast': { t: 0, i: [] }, 'Packing': { t: 0, i: [] } };
-    const target = filterAC === 'OP-26-01' ? 1420000 : data.filter(r => r['Type'] === 'Forecast').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
+    const dynamicTarget = data.filter(r => r['Type'] === 'Forecast').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
 
     data.forEach(r => {
         const amt = parseFloat(r['Amount']) || 0;
         if (stats[r['Status']] && amt > 0) {
             stats[r['Status']].t += amt;
-            stats[r['Status']].i.push({ d: r['Description'] || 'N/A', a: amt, m: r['Month']?.split('-')[1] });
+            stats[r['Status']].i.push({ d: r['Description'] || 'N/A', a: amt, mFull: r['Month'], mDisp: r['Month']?.split('-')[1] });
         }
     });
 
-    const makeBox = (title, color, key) => {
+    // 🔥 ลอจิกใหม่: จัดกลุ่มตามงาน -> หาเดือนที่เกิดก่อนของกลุ่ม -> เรียงกลุ่มตามเดือนที่เกิดก่อน -> เรียงเดือนในกลุ่ม
+    const sortLogic = (items) => {
+        const groups = {};
+        items.forEach(item => {
+            if (!groups[item.d]) groups[item.d] = [];
+            groups[item.d].push(item);
+        });
+
+        const groupList = Object.keys(groups).map(d => {
+            const grpItems = groups[d];
+            grpItems.sort((a, b) => MONTHS.indexOf(a.mFull) - MONTHS.indexOf(b.mFull)); // เรียงเดือนภายในกลุ่ม
+            const minMonth = MONTHS.indexOf(grpItems[0].mFull); // หาเดือนที่เร็วที่สุดของกลุ่มนี้
+            return { d, minMonth, items: grpItems };
+        });
+
+        // เรียงกลุ่มงาน โดยอิงจาก "เดือนแรกที่เริ่มงานนั้น" ถ้าเดือนเท่ากันให้เรียงชื่อ A-Z
+        groupList.sort((a, b) => {
+            if (a.minMonth !== b.minMonth) return a.minMonth - b.minMonth;
+            if (a.d < b.d) return -1;
+            if (a.d > b.d) return 1;
+            return 0;
+        });
+
+        return groupList.flatMap(g => g.items); // แตกกลับมาเป็น Array เดี่ยว
+    };
+
+    const makeBox = (title, color, key, bgColor) => {
         const s = stats[key];
-        let h = `<div style="font-size:11px; color:${color}; font-weight:600; text-transform:uppercase;">${title}</div>`;
-        h += `<div style="font-size:20px; font-weight:700; color:${color}; margin-bottom:10px;">${fmtM(s.t)}</div>`;
-        if (s.i.length > 0) {
-            h += `<div style="border-top:1px solid rgba(0,0,0,0.05); padding-top:8px; text-align:left;">`;
-            s.i.forEach(item => {
-                h += `<div style="font-size:11px; line-height:1.4; margin-bottom:6px; display:flex; justify-content:space-between; gap:10px;">
-                    <span style="color:var(--text2);">• ${item.d} (${item.m})</span>
-                    <span class="mono" style="font-weight:600; flex-shrink:0;">${fmtM(item.a)}</span>
-                </div>`;
+        const sorted = sortLogic(s.i);
+        let h = `<div class="tracker-box" style="background:${bgColor};">`;
+        h += `<div class="tracker-title" style="color:${color};">${title}</div>`;
+        h += `<div class="tracker-val" style="color:${color};">${fmtM(s.t)}</div>`;
+        if (sorted.length > 0) {
+            h += `<div class="tracker-list">`;
+            sorted.forEach(item => {
+                h += `<div class="tracker-item">
+                        <span>• ${item.d} (${item.mDisp})</span>
+                        <span class="tracker-item-val">${fmtM(item.a)}</span>
+                      </div>`;
             });
             h += `</div>`;
-        } else { h += `<div style="font-size:10px; color:var(--text3);">— No Data —</div>`; }
+        } else {
+            h += `<div style="font-size:10px; color:var(--text3); margin-top:10px;">— No Data —</div>`;
+        }
+        h += `</div>`;
         return h;
     };
 
-    document.getElementById('boxPR').innerHTML = makeBox('STATUS: PR', '#991b1b', 'PR');
-    document.getElementById('boxPO').innerHTML = makeBox('STATUS: FORECAST', '#92400e', 'Packing Forecast');
-    document.getElementById('boxActual').innerHTML = makeBox('STATUS: PACKED (ACTUAL)', '#166534', 'Packing');
+    document.getElementById('boxPR').innerHTML = makeBox('STATUS: PR', '#991b1b', 'PR', '#fdf2f2');
+    document.getElementById('boxPO').innerHTML = makeBox('STATUS: FORECAST', '#92400e', 'Packing Forecast', '#fffbeb');
+    document.getElementById('boxActual').innerHTML = makeBox('STATUS: PACKED (ACTUAL)', '#166534', 'Packing', '#f0fdf4');
 
-    const prog = target > 0 ? Math.min((stats['Packing'].t / target) * 100, 100).toFixed(1) : 0;
+    const prog = dynamicTarget > 0 ? Math.min((stats['Packing'].t / dynamicTarget) * 100, 100).toFixed(1) : 0;
     document.getElementById('progressBar').style.width = prog + '%';
-    document.getElementById('progressText').innerText = `ดำเนินการไปแล้ว ${prog}% (Target: ${fmtM(target)})`;
-}
-
-function renderTable(data) {
-  const groups = {};
-  data.forEach(r => { const k = `${r['Activity Code']}||${r['Budget Account']}`; if(!groups[k]) groups[k] = []; groups[k].push(r); });
-  let h = `<table class="pivot"><thead><tr><th>Activity</th><th>Account</th><th>Cat</th><th>User</th><th>Status</th><th>Description</th><th>Type</th>${MLABELS.map(m=>`<th>${m}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
-  let gIdx = 0;
-  Object.keys(groups).sort().forEach(k => {
-    const bg = gIdx++ % 2 === 0 ? 'bg-even' : 'bg-odd';
-    const lines = {};
-    groups[k].forEach(r => {
-      const lk = `${r['Type']}||${r['User']}||${r['Status']}||${r['Description']}`;
-      if(!lines[lk]) { lines[lk] = { ac:r['Activity Code'], ba:r['Budget Account'], cat:r['Category (OPEX/CAPEX)'], u:r['User'], s:r['Status'], d:r['Description'], t:r['Type'], m:{} }; MONTHS.forEach(mon => lines[lk].m[mon]=0); }
-      lines[lk].m[r['Month']] += parseFloat(r['Amount'])||0;
-    });
-    Object.values(lines).sort((a,b) => a.t === 'Forecast' ? -1 : 1).forEach(l => {
-      const tot = Object.values(l.m).reduce((a,b)=>a+b,0); if(tot===0 && l.t!=='Forecast') return;
-      h += `<tr class="${bg} ${l.t==='Forecast'?'forecast-row':'actual-row'}"><td>${l.ac}</td><td class="mono">${l.ba}</td><td>${l.cat}</td><td>${l.u}</td><td>${l.s}</td><td style="white-space:normal; max-width:220px;">${l.d}</td><td>${l.t}</td>${MONTHS.map(mon=>`<td>${l.m[mon]?fmtN(l.m[mon]):'—'}</td>`).join('')}<td style="font-weight:600">${fmtN(tot)}</td></tr>`;
-    });
-  });
-  document.getElementById('pivotEl').innerHTML = h + '</tbody></table>';
-  document.getElementById('rowCount').innerText = `${data.length} rows in selection`;
-}
-
-function renderDonut(data) {
-  const op = data.filter(r => r['Category (OPEX/CAPEX)'] === 'OPEX').reduce((s,r)=>s+(parseFloat(r['Amount'])||0),0);
-  const cp = data.filter(r => r['Category (OPEX/CAPEX)'] === 'CAPEX').reduce((s,r)=>s+(parseFloat(r['Amount'])||0),0);
-  const tot = op + cp;
-  if(donutChart) donutChart.destroy();
-  donutChart = new Chart(document.getElementById('donutChart'), { type:'doughnut', data:{ labels:['OPEX','CAPEX'], datasets:[{ data:[op,cp], backgroundColor:['#b4530977','#7c3aed77'], borderColor:['#b45309','#7c3aed'], borderWidth:1.5 }]}, options:{ responsive:true, maintainAspectRatio:false, cutout:'70%' }});
-  document.getElementById('donutLegend').innerHTML = `<span style="color:#b45309">● OPEX ${tot?(op/tot*100).toFixed(1):0}% — ${fmtM(op)}</span> <span style="color:#7c3aed">● CAPEX ${tot?(cp/tot*100).toFixed(1):0}% — ${fmtM(cp)}</span>`;
+    document.getElementById('progressText').innerText = `ดำเนินการไปแล้ว ${prog}% (Target: ${fmtM(dynamicTarget)})`;
 }
 
 function checkAlerts(raw) {
-  const g = {}; raw.forEach(r => { const k=`${r['Activity Code']} (${r['Budget Account']})`; if(!g[k]) g[k]={f:0,a:0}; if(r['Type']==='Forecast') g[k].f+=parseFloat(r['Amount'])||0; if(r['Type']==='Actual') g[k].a+=parseFloat(r['Amount'])||0; });
+  const g = {}; 
+  raw.forEach(r => { 
+      const k=`${r['Activity Code']} (${r['Budget Account']})`; 
+      if(!g[k]) g[k]={f:0,a:0}; 
+      if(r['Type']==='Forecast') g[k].f+=parseFloat(r['Amount'])||0; 
+      if(r['Type']==='Actual') g[k].a+=parseFloat(r['Amount'])||0; 
+  });
+  
   const o = Object.keys(g).filter(k=>g[k].a>g[k].f && g[k].f>0).map(k=>`• ${k} ใช้งบเกินแผนไป ${fmtN(g[k].a-g[k].f)} ฿`);
-  const b = document.getElementById('alertBox'); if(o.length>0) { b.innerHTML=`🚨 <b>Over Budget Warning:</b><br>${o.join('<br>')}`; b.style.display='block'; } else b.style.display='none';
+  const b = document.getElementById('alertBox'); 
+  
+  if(o.length>0) { 
+      b.innerHTML=`<div style="font-weight:600; margin-bottom:8px;">🚨 Over Budget Warning:</div>${o.join('<br>')}`; 
+      b.style.display='block'; 
+  } else {
+      b.style.display='none';
+  }
 }
 
 window.onload = loadData;
