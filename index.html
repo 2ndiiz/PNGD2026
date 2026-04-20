@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PNGD Budget 2026 — Dashboard v4.2</title>
+<title>PNGD Budget 2026 — Dashboard v5.1 (Multi-tag & Sorting)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -23,6 +23,8 @@
     --amber-light: #fef3c7;
     --red: #b91c1c;
     --red-light: #fee2e2;
+    --purple: #7c3aed;
+    --purple-light: #f3e8ff;
     --radius: 8px;
     --radius-lg: 12px;
   }
@@ -40,16 +42,24 @@
   #loadBtn:hover { opacity: .85; }
   #statusBadge { font-size: 11px; font-family: 'IBM Plex Mono', monospace; padding: 4px 10px; border-radius: 99px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
   #statusBadge.ok { background: #14532d22; color: #4ade80; border: 1px solid #4ade8044; }
-  #statusBadge.err { background: #7f1d1d22; color: #f87171; border: 1px solid #f8717144; }
 
   /* ── Filters ── */
   .filters { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 28px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .filter-label { font-size: 12px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
   select { font-family: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); cursor: pointer; min-width: 130px; }
   select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
-  
   .btn-clear { font-family: inherit; font-size: 11px; color: var(--blue); border: 1px solid var(--blue); background: var(--surface); padding: 4px 10px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
   .btn-clear:hover { background: var(--blue-light); }
+
+  /* ── Multi-Select Tags ── */
+  .multi-select-wrap { position: relative; min-width: 180px; font-size: 13px; font-family: inherit; }
+  .multi-select-box { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 4px 10px; min-height: 31px; display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer; }
+  .multi-tag { padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 500; display: inline-block; white-space: nowrap; }
+  .multi-select-dropdown { position: absolute; top: calc(100% + 4px); left: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; display: none; padding: 6px; min-width: 100%; flex-direction: column; gap: 2px; }
+  .multi-select-dropdown.show { display: flex; }
+  .ms-option { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .ms-option:hover { background: var(--surface2); }
+  .ms-option input { margin: 0; cursor: pointer; }
 
   /* ── Main layout ── */
   .main { padding: 20px 28px; }
@@ -65,7 +75,6 @@
   .kpi-badge { display: inline-block; font-size: 11px; padding: 2px 9px; border-radius: 99px; font-weight: 500; font-family: 'IBM Plex Mono', monospace; }
   .badge-over { background: var(--red-light); color: var(--red); }
   .badge-under { background: var(--green-light); color: var(--green); }
-  .badge-zero { background: var(--surface2); color: var(--text3); }
 
   /* ── Execution Tracker ── */
   .tracker-box { padding: 16px; border-radius: var(--radius); text-align: center; }
@@ -78,8 +87,6 @@
   /* ── Two-col layout ── */
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
   @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
-
-  /* ── Cards ── */
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; }
   .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--text2); display: flex; align-items: center; gap: 10px; }
@@ -87,8 +94,6 @@
 
   /* ── Chart ── */
   .chart-wrap { position: relative; width: 100%; height: 240px; }
-
-  /* ── Legend ── */
   .legend { display: flex; gap: 14px; font-size: 11px; color: var(--text2); }
   .leg { display: flex; align-items: center; gap: 5px; }
   .leg-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
@@ -101,17 +106,19 @@
   table.pivot td { padding: 6px 10px; text-align: right; border-bottom: 1px solid #f0ede6; vertical-align: top; color: var(--text); }
   table.pivot td.left { text-align: left; }
   table.pivot td.mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
-  
   table.pivot tr.bg-even td { background-color: #ffffff; }
   table.pivot tr.bg-odd td { background-color: #f7f6f1; } 
   
   table.pivot tr.forecast-row td { color: var(--blue); } 
+  table.pivot tr.personal-row td { color: var(--purple); } /* เพิ่มสีม่วงให้แถว Personal */
   table.pivot tr.actual-row td { color: var(--green); }
   table.pivot tr:hover td { background-color: var(--blue-light) !important; }
   
   .type-badge { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 99px; font-weight: 500; }
   .type-fc { background: var(--blue-light); color: var(--blue); }
   .type-ac { background: var(--green-light); color: var(--green); }
+  .type-ps { background: var(--purple-light); color: var(--purple); } 
+  
   .cat-opex { background: var(--amber-light); color: var(--amber); font-size: 10px; padding: 1px 6px; border-radius: 99px; }
   .cat-capex { background: #f3e8ff; color: #7c3aed; font-size: 10px; padding: 1px 6px; border-radius: 99px; }
   .desc-cell { max-width: 250px; white-space: normal; line-height: 1.4; font-size: 12px; }
@@ -145,7 +152,14 @@
   <select id="fBA" onchange="applyFilters()"><option value="">Budget Account ทั้งหมด</option></select>
   <select id="fCat" onchange="applyFilters()"><option value="">OPEX + CAPEX</option><option value="OPEX">OPEX</option><option value="CAPEX">CAPEX</option></select>
   <select id="fUser" onchange="applyFilters()"><option value="">User ทั้งหมด</option></select>
-  <select id="fType" onchange="applyFilters()"><option value="">Forecast + Actual</option><option value="Forecast">Forecast</option><option value="Actual">Actual</option></select>
+  
+  <div class="multi-select-wrap" id="typeFilterWrap">
+    <div class="multi-select-box" onclick="toggleTypeSelect()">
+      <div id="typeTags" style="display:flex; gap:4px; flex-wrap:wrap; align-items:center; width:100%;"></div>
+      <span style="font-size:10px; color:var(--text3); margin-left:8px;">▼</span>
+    </div>
+    <div class="multi-select-dropdown" id="typeDropdown"></div>
+  </div>
 </div>
 
 <div class="main">
@@ -178,11 +192,7 @@
           Forecast vs Actual รายเดือน 
           <button class="btn-clear" onclick="clearMonthFilter()" style="margin-left: 10px;">ล้างการเลือกเดือน</button>
         </span>
-        <div class="legend">
-            <div class="leg"><span class="leg-dot" style="background:#b45309; height:3px; width:12px;"></span>Util %</div>
-            <div class="leg"><span class="leg-dot" style="background:#1a56a0;"></span>Forecast</div>
-            <div class="leg"><span class="leg-dot" style="background:#0d7a5f;"></span>Actual</div>
-        </div>
+        <div class="legend" id="chartLegend"></div>
       </div>
       <div class="card-body"><div class="chart-wrap"><canvas id="barChart"></canvas></div></div>
     </div>
@@ -208,7 +218,9 @@ const MONTHS = ['01-Jan','02-Feb','03-Mar','04-Apr','05-May','06-June','07-July'
 const MLABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 let RAW = [];
 let barChart = null, donutChart = null;
+
 let selectedMonths = []; 
+let selectedTypes = ['Forecast', 'Actual']; 
 
 function fmtN(v) { return v === 0 ? '—' : Math.round(v).toLocaleString('th-TH'); }
 function fmtM(v) {
@@ -218,6 +230,17 @@ function fmtM(v) {
   if (a >= 1e6) return s + (a/1e6).toFixed(2) + 'M';
   if (a >= 1e3) return s + Math.round(a/1e3) + 'K';
   return s + Math.round(a).toLocaleString();
+}
+
+document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('typeFilterWrap');
+    if (wrap && !wrap.contains(e.target)) {
+        document.getElementById('typeDropdown').classList.remove('show');
+    }
+});
+
+function toggleTypeSelect() {
+    document.getElementById('typeDropdown').classList.toggle('show');
 }
 
 async function loadData() {
@@ -259,6 +282,36 @@ function populateFilters() {
   setOpts('fAC', getUniq('Activity Code'));
   setOpts('fBA', getUniq('Budget Account'));
   setOpts('fUser', getUniq('User'));
+
+  const allTypes = getUniq('Type');
+  const ddl = document.getElementById('typeDropdown');
+  ddl.innerHTML = allTypes.map(t => `
+      <label class="ms-option">
+          <input type="checkbox" value="${t}" ${selectedTypes.includes(t) ? 'checked' : ''} onchange="handleTypeChange()">
+          ${t}
+      </label>
+  `).join('');
+  renderTypeTags();
+}
+
+function handleTypeChange() {
+    const inputs = document.querySelectorAll('#typeDropdown input:checked');
+    selectedTypes = Array.from(inputs).map(i => i.value);
+    renderTypeTags();
+    applyFilters();
+}
+
+function renderTypeTags() {
+    const box = document.getElementById('typeTags');
+    if(selectedTypes.length === 0) {
+        box.innerHTML = '<span style="color:var(--text3)">เลือก Type...</span>';
+    } else {
+        box.innerHTML = selectedTypes.map(t => {
+            const bg = t === 'Personal' ? 'var(--purple-light)' : (t === 'Actual' ? 'var(--green-light)' : 'var(--blue-light)');
+            const col = t === 'Personal' ? 'var(--purple)' : (t === 'Actual' ? 'var(--green)' : 'var(--blue)');
+            return `<span class="multi-tag" style="background:${bg}; color:${col};">${t}</span>`;
+        }).join('');
+    }
 }
 
 function getFiltered(ignoreMonth = false) {
@@ -266,14 +319,13 @@ function getFiltered(ignoreMonth = false) {
   const ba = document.getElementById('fBA').value;
   const cat = document.getElementById('fCat').value;
   const user = document.getElementById('fUser').value;
-  const type = document.getElementById('fType').value;
   
   return RAW.filter(r =>
     (!ac || r['Activity Code'] === ac) &&
     (!ba || String(r['Budget Account']) === ba) &&
     (!cat || r['Category (OPEX/CAPEX)'] === cat) &&
     (!user || r['User'] === user) &&
-    (!type || r['Type'] === type) &&
+    (selectedTypes.length === 0 || selectedTypes.includes(r['Type'])) &&
     (ignoreMonth || selectedMonths.length === 0 || selectedMonths.includes(r['Month']))
   );
 }
@@ -300,8 +352,11 @@ function resetAllFilters() {
     document.getElementById('fBA').value = "";
     document.getElementById('fCat').value = "";
     document.getElementById('fUser').value = "";
-    document.getElementById('fType').value = "";
+    
     selectedMonths = [];
+    selectedTypes = ['Forecast', 'Actual']; 
+    document.querySelectorAll('#typeDropdown input').forEach(chk => chk.checked = selectedTypes.includes(chk.value));
+    renderTypeTags();
     applyFilters();
 }
 
@@ -309,18 +364,21 @@ function clearMonthFilter() { selectedMonths = []; applyFilters(); }
 
 function renderKPIs(data) {
   const fc = data.filter(r => r['Type'] === 'Forecast').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
+  const pc = data.filter(r => r['Type'] === 'Personal').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
   const ac = data.filter(r => r['Type'] === 'Actual').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
-  const variance = ac - fc;
-  const pct = fc > 0 ? ((ac / fc) * 100).toFixed(1) : '0.0';
+  
+  const target = fc + pc; 
+  const variance = ac - target;
+  const pct = target > 0 ? ((ac / target) * 100).toFixed(1) : '0.0';
 
   const varBadge = variance > 0
     ? `<span class="kpi-badge badge-over">+${fmtM(variance)} over</span>`
     : `<span class="kpi-badge badge-under">${fmtM(variance)} under</span>`;
 
   document.getElementById('kpiEl').innerHTML = `
-    <div class="kpi"><div class="kpi-label">Total Forecast</div><div class="kpi-value blue">${fmtM(fc)}</div><div class="kpi-sub">฿${fmtN(fc)}</div></div>
+    <div class="kpi"><div class="kpi-label">Total Target ${pc > 0 ? '(FC+Personal)' : ''}</div><div class="kpi-value blue">${fmtM(target)}</div><div class="kpi-sub">฿${fmtN(target)}</div></div>
     <div class="kpi"><div class="kpi-label">Total Actual</div><div class="kpi-value green">${fmtM(ac)}</div><div class="kpi-sub">฿${fmtN(ac)}</div></div>
-    <div class="kpi"><div class="kpi-label">Utilization</div><div class="kpi-value">${pct}%</div><div class="kpi-sub">of budget used</div></div>
+    <div class="kpi"><div class="kpi-label">Utilization</div><div class="kpi-value">${pct}%</div><div class="kpi-sub">of target used</div></div>
     <div class="kpi"><div class="kpi-label">Variance</div><div class="kpi-value">${varBadge}</div><div class="kpi-sub">฿${fmtN(Math.abs(variance))}</div></div>
     <div class="kpi"><div class="kpi-label">Transactions</div><div class="kpi-value">${data.length}</div><div class="kpi-sub">rows in selection</div></div>
   `;
@@ -328,19 +386,38 @@ function renderKPIs(data) {
 
 function renderChart(cData) {
   const getSum = (t) => MONTHS.map(m => cData.filter(r => r['Month'] === m && r['Type'] === t).reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0));
-  const fV = getSum('Forecast'), aV = getSum('Actual');
-  const uV = fV.map((f, i) => f > 0 ? (aV[i]/f*100).toFixed(1) : 0);
+  const fV = getSum('Forecast'), aV = getSum('Actual'), pV = getSum('Personal');
+  
+  const uV = MONTHS.map((m, i) => {
+      const tg = fV[i] + pV[i];
+      return tg > 0 ? (aV[i]/tg*100).toFixed(1) : 0;
+  });
 
   if (barChart) barChart.destroy();
+  
+  const datasets = [
+      { type: 'line', label: 'Util %', data: uV, borderColor: '#b45309', yAxisID: 'yP', tension: 0.3, pointRadius: 4 }
+  ];
+
+  let legendHtml = `<div class="leg"><span class="leg-dot" style="background:#b45309; height:3px; width:12px;"></span>Util %</div>`;
+  
+  if (selectedTypes.includes('Forecast') || selectedTypes.length === 0) {
+      datasets.push({ type: 'bar', label: 'Forecast', data: fV, yAxisID: 'yA', backgroundColor: (c) => selectedMonths.length === 0 || selectedMonths.includes(MONTHS[c.dataIndex]) ? 'rgba(26,86,160,0.75)' : 'rgba(26,86,160,0.15)', borderRadius: 4 });
+      legendHtml += `<div class="leg"><span class="leg-dot" style="background:#1a56a0;"></span>Forecast</div>`;
+  }
+  if (selectedTypes.includes('Personal')) {
+      datasets.push({ type: 'bar', label: 'Personal', data: pV, yAxisID: 'yA', backgroundColor: (c) => selectedMonths.length === 0 || selectedMonths.includes(MONTHS[c.dataIndex]) ? 'rgba(124,58,237,0.75)' : 'rgba(124,58,237,0.15)', borderRadius: 4 });
+      legendHtml += `<div class="leg"><span class="leg-dot" style="background:#7c3aed;"></span>Personal</div>`;
+  }
+  if (selectedTypes.includes('Actual') || selectedTypes.length === 0) {
+      datasets.push({ type: 'bar', label: 'Actual', data: aV, yAxisID: 'yA', backgroundColor: (c) => selectedMonths.length === 0 || selectedMonths.includes(MONTHS[c.dataIndex]) ? 'rgba(13,122,95,0.8)' : 'rgba(13,122,95,0.15)', borderRadius: 4 });
+      legendHtml += `<div class="leg"><span class="leg-dot" style="background:#0d7a5f;"></span>Actual</div>`;
+  }
+
+  document.getElementById('chartLegend').innerHTML = legendHtml;
+
   barChart = new Chart(document.getElementById('barChart'), {
-    data: {
-      labels: MLABELS,
-      datasets: [
-        { type: 'line', label: 'Util %', data: uV, borderColor: '#b45309', yAxisID: 'yP', tension: 0.3, pointRadius: 4 },
-        { type: 'bar', label: 'Forecast', data: fV, yAxisID: 'yA', backgroundColor: (c) => selectedMonths.length === 0 || selectedMonths.includes(MONTHS[c.dataIndex]) ? 'rgba(26,86,160,0.75)' : 'rgba(26,86,160,0.15)', borderRadius: 4 },
-        { type: 'bar', label: 'Actual', data: aV, yAxisID: 'yA', backgroundColor: (c) => selectedMonths.length === 0 || selectedMonths.includes(MONTHS[c.dataIndex]) ? 'rgba(13,122,95,0.8)' : 'rgba(13,122,95,0.15)', borderRadius: 4 }
-      ]
-    },
+    data: { labels: MLABELS, datasets: datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       onClick: (e, el) => { if(el.length > 0) { const m = MONTHS[el[0].index]; selectedMonths = selectedMonths.includes(m) ? selectedMonths.filter(x => x !== m) : [...selectedMonths, m]; applyFilters(); }},
@@ -395,6 +472,9 @@ function renderTable(data) {
   const sortedKeys = Object.keys(groups).sort();
   let groupIndex = 0;
 
+  // 🔥 จัดลำดับความสำคัญของ Type: 1=Forecast, 2=Personal, 3=Actual
+  const typeWeight = { 'Forecast': 1, 'Personal': 2, 'Actual': 3 };
+
   sortedKeys.forEach(accKey => {
     const rows = groups[accKey];
     const lines = {};
@@ -419,15 +499,19 @@ function renderTable(data) {
       lines[lineKey].months[r['Month']] += parseFloat(r['Amount']) || 0;
     });
 
-    Object.values(lines).sort((a,b) => a.type === 'Forecast' ? -1 : 1).forEach(l => {
+    Object.values(lines).sort((a,b) => (typeWeight[a.type] || 4) - (typeWeight[b.type] || 4)).forEach(l => {
       const total = Object.values(l.months).reduce((a,b)=>a+b, 0);
       if (total === 0 && l.type !== 'Forecast') return; 
 
       const baFmt = String(l.ba).replace(/\.0$/, '').replace(/(\d+)\.?\d*E\+?(\d+)/, (_, m, e) => String(parseInt(m) * Math.pow(10, parseInt(e)-7)));
       const catHtml = l.cat === 'OPEX' ? '<span class="cat-opex">OPEX</span>' : l.cat === 'CAPEX' ? '<span class="cat-capex">CAPEX</span>' : l.cat;
-      const typeHtml = `<span class="type-badge ${l.type === 'Forecast' ? 'type-fc' : 'type-ac'}">${l.type}</span>`;
+      const typeClass = l.type === 'Forecast' ? 'type-fc' : (l.type === 'Actual' ? 'type-ac' : 'type-ps');
+      const typeHtml = `<span class="type-badge ${typeClass}">${l.type}</span>`;
+      
+      // เลือก Class จัดสีแถว
+      const rowColorClass = l.type === 'Forecast' ? 'forecast-row' : (l.type === 'Personal' ? 'personal-row' : 'actual-row');
 
-      html += `<tr class="${l.type === 'Forecast' ? 'forecast-row' : 'actual-row'} ${bgClass}">
+      html += `<tr class="${rowColorClass} ${bgClass}">
         <td class="left mono">${l.ac}</td>
         <td class="left mono">${baFmt}</td>
         <td class="left">${catHtml}</td>
@@ -453,7 +537,8 @@ function updateExecSummary(data) {
     document.getElementById('currentAC').innerText = filterAC;
 
     let stats = { 'PR': { t: 0, i: [] }, 'Packing Forecast': { t: 0, i: [] }, 'Packing': { t: 0, i: [] } };
-    const dynamicTarget = data.filter(r => r['Type'] === 'Forecast').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
+    
+    const dynamicTarget = data.filter(r => r['Type'] === 'Forecast' || r['Type'] === 'Personal').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
 
     data.forEach(r => {
         const amt = parseFloat(r['Amount']) || 0;
@@ -463,7 +548,6 @@ function updateExecSummary(data) {
         }
     });
 
-    // 🔥 ลอจิกใหม่: จัดกลุ่มตามงาน -> หาเดือนที่เกิดก่อนของกลุ่ม -> เรียงกลุ่มตามเดือนที่เกิดก่อน -> เรียงเดือนในกลุ่ม
     const sortLogic = (items) => {
         const groups = {};
         items.forEach(item => {
@@ -473,12 +557,11 @@ function updateExecSummary(data) {
 
         const groupList = Object.keys(groups).map(d => {
             const grpItems = groups[d];
-            grpItems.sort((a, b) => MONTHS.indexOf(a.mFull) - MONTHS.indexOf(b.mFull)); // เรียงเดือนภายในกลุ่ม
-            const minMonth = MONTHS.indexOf(grpItems[0].mFull); // หาเดือนที่เร็วที่สุดของกลุ่มนี้
+            grpItems.sort((a, b) => MONTHS.indexOf(a.mFull) - MONTHS.indexOf(b.mFull));
+            const minMonth = MONTHS.indexOf(grpItems[0].mFull);
             return { d, minMonth, items: grpItems };
         });
 
-        // เรียงกลุ่มงาน โดยอิงจาก "เดือนแรกที่เริ่มงานนั้น" ถ้าเดือนเท่ากันให้เรียงชื่อ A-Z
         groupList.sort((a, b) => {
             if (a.minMonth !== b.minMonth) return a.minMonth - b.minMonth;
             if (a.d < b.d) return -1;
@@ -486,7 +569,7 @@ function updateExecSummary(data) {
             return 0;
         });
 
-        return groupList.flatMap(g => g.items); // แตกกลับมาเป็น Array เดี่ยว
+        return groupList.flatMap(g => g.items);
     };
 
     const makeBox = (title, color, key, bgColor) => {
