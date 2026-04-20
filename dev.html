@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PNGD Budget 2026 — Dashboard v5.2 (Table Grouping)</title>
+<title>PNGD Budget 2026 — Dashboard v5.3 (Perfect Sorting)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -108,9 +108,10 @@
   table.pivot td.mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
   table.pivot tr.bg-even td { background-color: #ffffff; }
   table.pivot tr.bg-odd td { background-color: #f7f6f1; } 
+  
   table.pivot tr.forecast-row td { color: var(--blue); } 
-  table.pivot tr.actual-row td { color: var(--green); }
   table.pivot tr.personal-row td { color: var(--purple); } 
+  table.pivot tr.actual-row td { color: var(--green); }
   table.pivot tr:hover td { background-color: var(--blue-light) !important; }
   
   .type-badge { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 99px; font-weight: 500; }
@@ -497,10 +498,17 @@ function renderTable(data) {
       lines[lineKey].months[r['Month']] += parseFloat(r['Amount']) || 0;
     });
 
-    // 🔥 เรียงลำดับในตาราง: Description เหมือนกันให้เรียงติดกัน แล้วตามด้วย Type
+    // 🔥 ลอจิกการเรียงลำดับใหม่สุดเป๊ะ: 
+    // 1. Forecast อยู่บนสุดเสมอ
+    // 2. ถ้าไม่ใช่ Forecast จับกลุ่มชื่อเดียวกัน
+    // 3. ชื่อเดียวกัน Personal อยู่บน Actual
     Object.values(lines).sort((a, b) => {
+        if (a.type === 'Forecast' && b.type !== 'Forecast') return -1;
+        if (a.type !== 'Forecast' && b.type === 'Forecast') return 1;
+        
         if (a.desc < b.desc) return -1;
         if (a.desc > b.desc) return 1;
+        
         return (typeWeight[a.type] || 4) - (typeWeight[b.type] || 4);
     }).forEach(l => {
       const total = Object.values(l.months).reduce((a,b)=>a+b, 0);
