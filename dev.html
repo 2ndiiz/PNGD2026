@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PNGD Budget 2026 — Dashboard v5.0 (Multi-tag)</title>
+<title>PNGD Budget 2026 — Dashboard v5.1 (Multi-tag & Sorting)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -108,14 +108,16 @@
   table.pivot td.mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
   table.pivot tr.bg-even td { background-color: #ffffff; }
   table.pivot tr.bg-odd td { background-color: #f7f6f1; } 
+  
   table.pivot tr.forecast-row td { color: var(--blue); } 
+  table.pivot tr.personal-row td { color: var(--purple); } /* เพิ่มสีม่วงให้แถว Personal */
   table.pivot tr.actual-row td { color: var(--green); }
   table.pivot tr:hover td { background-color: var(--blue-light) !important; }
   
   .type-badge { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 99px; font-weight: 500; }
   .type-fc { background: var(--blue-light); color: var(--blue); }
   .type-ac { background: var(--green-light); color: var(--green); }
-  .type-ps { background: var(--purple-light); color: var(--purple); } /* ป้าย Personal */
+  .type-ps { background: var(--purple-light); color: var(--purple); } 
   
   .cat-opex { background: var(--amber-light); color: var(--amber); font-size: 10px; padding: 1px 6px; border-radius: 99px; }
   .cat-capex { background: #f3e8ff; color: #7c3aed; font-size: 10px; padding: 1px 6px; border-radius: 99px; }
@@ -190,8 +192,7 @@
           Forecast vs Actual รายเดือน 
           <button class="btn-clear" onclick="clearMonthFilter()" style="margin-left: 10px;">ล้างการเลือกเดือน</button>
         </span>
-        <div class="legend" id="chartLegend">
-            </div>
+        <div class="legend" id="chartLegend"></div>
       </div>
       <div class="card-body"><div class="chart-wrap"><canvas id="barChart"></canvas></div></div>
     </div>
@@ -218,7 +219,6 @@ const MLABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','No
 let RAW = [];
 let barChart = null, donutChart = null;
 
-// 🔥 ค่า Default จะแสดงเฉพาะ Forecast และ Actual เท่านั้น
 let selectedMonths = []; 
 let selectedTypes = ['Forecast', 'Actual']; 
 
@@ -232,7 +232,6 @@ function fmtM(v) {
   return s + Math.round(a).toLocaleString();
 }
 
-// คลิกข้างนอกเพื่อปิด Dropdown Multi-select
 document.addEventListener('click', function(e) {
     const wrap = document.getElementById('typeFilterWrap');
     if (wrap && !wrap.contains(e.target)) {
@@ -284,7 +283,6 @@ function populateFilters() {
   setOpts('fBA', getUniq('Budget Account'));
   setOpts('fUser', getUniq('User'));
 
-  // เตรียมตัวเลือกสำหรับ Multi-tag ของช่อง Type
   const allTypes = getUniq('Type');
   const ddl = document.getElementById('typeDropdown');
   ddl.innerHTML = allTypes.map(t => `
@@ -356,7 +354,7 @@ function resetAllFilters() {
     document.getElementById('fUser').value = "";
     
     selectedMonths = [];
-    selectedTypes = ['Forecast', 'Actual']; // กลับไปค่าเริ่มต้น
+    selectedTypes = ['Forecast', 'Actual']; 
     document.querySelectorAll('#typeDropdown input').forEach(chk => chk.checked = selectedTypes.includes(chk.value));
     renderTypeTags();
     applyFilters();
@@ -369,7 +367,7 @@ function renderKPIs(data) {
   const pc = data.filter(r => r['Type'] === 'Personal').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
   const ac = data.filter(r => r['Type'] === 'Actual').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
   
-  const target = fc + pc; // ถ้ารวม Personal เป้าจะเพิ่มขึ้นอัตโนมัติ
+  const target = fc + pc; 
   const variance = ac - target;
   const pct = target > 0 ? ((ac / target) * 100).toFixed(1) : '0.0';
 
@@ -390,7 +388,6 @@ function renderChart(cData) {
   const getSum = (t) => MONTHS.map(m => cData.filter(r => r['Month'] === m && r['Type'] === t).reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0));
   const fV = getSum('Forecast'), aV = getSum('Actual'), pV = getSum('Personal');
   
-  // Util % เส้นโค้งกราฟจะคำนวณจาก Actual หาร (Forecast + Personal)
   const uV = MONTHS.map((m, i) => {
       const tg = fV[i] + pV[i];
       return tg > 0 ? (aV[i]/tg*100).toFixed(1) : 0;
@@ -475,6 +472,9 @@ function renderTable(data) {
   const sortedKeys = Object.keys(groups).sort();
   let groupIndex = 0;
 
+  // 🔥 จัดลำดับความสำคัญของ Type: 1=Forecast, 2=Personal, 3=Actual
+  const typeWeight = { 'Forecast': 1, 'Personal': 2, 'Actual': 3 };
+
   sortedKeys.forEach(accKey => {
     const rows = groups[accKey];
     const lines = {};
@@ -499,16 +499,19 @@ function renderTable(data) {
       lines[lineKey].months[r['Month']] += parseFloat(r['Amount']) || 0;
     });
 
-    Object.values(lines).sort((a,b) => a.type === 'Forecast' ? -1 : 1).forEach(l => {
+    Object.values(lines).sort((a,b) => (typeWeight[a.type] || 4) - (typeWeight[b.type] || 4)).forEach(l => {
       const total = Object.values(l.months).reduce((a,b)=>a+b, 0);
-      if (total === 0) return; 
+      if (total === 0 && l.type !== 'Forecast') return; 
 
       const baFmt = String(l.ba).replace(/\.0$/, '').replace(/(\d+)\.?\d*E\+?(\d+)/, (_, m, e) => String(parseInt(m) * Math.pow(10, parseInt(e)-7)));
       const catHtml = l.cat === 'OPEX' ? '<span class="cat-opex">OPEX</span>' : l.cat === 'CAPEX' ? '<span class="cat-capex">CAPEX</span>' : l.cat;
       const typeClass = l.type === 'Forecast' ? 'type-fc' : (l.type === 'Actual' ? 'type-ac' : 'type-ps');
       const typeHtml = `<span class="type-badge ${typeClass}">${l.type}</span>`;
+      
+      // เลือก Class จัดสีแถว
+      const rowColorClass = l.type === 'Forecast' ? 'forecast-row' : (l.type === 'Personal' ? 'personal-row' : 'actual-row');
 
-      html += `<tr class="${l.type === 'Forecast' ? 'forecast-row' : 'actual-row'} ${bgClass}">
+      html += `<tr class="${rowColorClass} ${bgClass}">
         <td class="left mono">${l.ac}</td>
         <td class="left mono">${baFmt}</td>
         <td class="left">${catHtml}</td>
@@ -535,7 +538,6 @@ function updateExecSummary(data) {
 
     let stats = { 'PR': { t: 0, i: [] }, 'Packing Forecast': { t: 0, i: [] }, 'Packing': { t: 0, i: [] } };
     
-    // 🔥 เป้าหมาย Tracker นับรวมทั้ง Forecast และ Personal ถ้าถูกเลือก
     const dynamicTarget = data.filter(r => r['Type'] === 'Forecast' || r['Type'] === 'Personal').reduce((s, r) => s + (parseFloat(r['Amount']) || 0), 0);
 
     data.forEach(r => {
