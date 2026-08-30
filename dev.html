@@ -630,7 +630,7 @@ function init(staticryptConfig, templateConfig) {
 
         // if the user configured a callback call it, otherwise just replace the whole HTML
         if (typeof replaceHtmlCallback === "function") {
-            replaceHtmlCallback(plainHTML);
+            replaceHtmlCallback(plainHTML, hashedPassword);
         } else {
             document.write(plainHTML);
             document.close();
@@ -828,18 +828,33 @@ exports.init = init;
             const templateConfig = {
                 rememberExpirationKey: "staticrypt_expiration",
                 rememberPassphraseKey: "staticrypt_passphrase",
-                replaceHtmlCallback: (plainHTML) => {
+                replaceHtmlCallback: (plainHTML, hashedPassword) => {
+                    const secureBootstrapTag = '<script src="./dev-secure-bootstrap.js?v=20260830-1"></' + 'script>';
                     const devPatchTag = '<script src="./dev-patch.js?v=20260830-3"></' + 'script>';
+                    const proofTag = '<script id="pngd-dev-auth-proof">window.__PNGD_DEV_AUTH_PROOF=' + JSON.stringify(hashedPassword) + ';document.currentScript.remove();</' + 'script>';
+
+                    // DEV security isolation: decrypted dashboard points only at Restricted TEST copies.
+                    let securedHTML = plainHTML
+                        .split('1Omvnc6JR4Ie0TIAz3DLON4zfdFICPSOTDMUKfCqk2U0').join('13vEju4eyoysO1ETl14I65jBRwhXsKpWR2Q-22hEUhUM')
+                        .split('1CtTmd6oOXZnn299w7olefvdrXWl-R1xvtUQhcK9JaKw').join('1BWt9Wt4OuQ4s_pNvARettnX4585rMpj-0zjetLAoOP4')
+                        .split('pngd_budget_cache_v1').join('pngd_budget_secure_dev_cache_v1');
+
                     // DEV only: remove the legacy hashchange handler before the decrypted app executes.
-                    // That handler rendered with stale controls and could overwrite the hash before
-                    // the DEV patch restored Back/Forward state.
-                    const withoutLegacyHashHandler = plainHTML.replace(
+                    securedHTML = securedHTML.replace(
                         /window\.addEventListener\(['"]hashchange['"],\s*\(\)\s*=>\s*\{\s*(?:if\s*\(RAW\.length\)\s*)?applyFilters\(\);\s*\}\s*\);/,
                         ''
                     );
-                    const patchedHTML = withoutLegacyHashHandler.includes('</body>')
-                        ? withoutLegacyHashHandler.replace('</body>', devPatchTag + '</body>')
-                        : withoutLegacyHashHandler + devPatchTag;
+
+                    // Install the secure fetch gateway before any dashboard JavaScript can request data.
+                    if (securedHTML.includes('<head>')) {
+                        securedHTML = securedHTML.replace('<head>', '<head>' + proofTag + secureBootstrapTag);
+                    } else {
+                        securedHTML = proofTag + secureBootstrapTag + securedHTML;
+                    }
+
+                    const patchedHTML = securedHTML.includes('</body>')
+                        ? securedHTML.replace('</body>', devPatchTag + '</body>')
+                        : securedHTML + devPatchTag;
                     document.write(patchedHTML);
                     document.close();
                 },
