@@ -5,13 +5,17 @@
 
   const state = {
     search: '',
-    phase: '1',
+    phase: '2',
+    lastShareUrl: '',
   };
 
   const originalGetFilteredFor = getFilteredFor;
   const originalRenderApp = renderApp;
   const originalApplyFilters = applyFilters;
   const originalClearAllFilters = clearAllFilters;
+  const originalSaveFiltersToHash = saveFiltersToHash;
+  const originalLoadFiltersFromHash = loadFiltersFromHash;
+  const originalRenderYoY = renderYoY;
 
   function textOf(row) {
     return [
@@ -94,8 +98,18 @@
       .dq-item{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface2)}
       .health-row-green td:last-child{color:#166534!important}.health-row-amber td:last-child{color:#854d0e!important}.health-row-orange td:last-child{color:#9a3412!important}.health-row-red td:last-child{color:#991b1b!important;background:#fef2f2}
       #kpiEl .kpi.dev-health-green{border-bottom:3px solid #15803d}#kpiEl .kpi.dev-health-amber{border-bottom:3px solid #ca8a04}#kpiEl .kpi.dev-health-orange{border-bottom:3px solid #ea580c}#kpiEl .kpi.dev-health-red{border-bottom:3px solid #dc2626}
-      @media(max-width:1100px){.exec-grid{grid-template-columns:repeat(3,minmax(140px,1fr))}}
-      @media(max-width:680px){.dev-search-wrap{min-width:100%;max-width:none}.exec-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.exec-overview-head{align-items:flex-start;flex-direction:column}}
+      .dev-action-btn{font-family:inherit;font-size:10px;padding:6px 9px;border:1px solid var(--border);background:var(--surface);color:var(--text2);border-radius:var(--radius);cursor:pointer;font-weight:600;white-space:nowrap}
+      .dev-action-btn:hover{border-color:var(--blue);color:var(--blue)}
+      .risk-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+      .risk-item{border:1px solid var(--border);border-radius:9px;background:var(--surface);padding:10px 11px;text-align:left;cursor:pointer;font-family:inherit;color:var(--text);min-width:0}
+      .risk-item:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(0,0,0,.05)}
+      .risk-top{display:flex;justify-content:space-between;gap:8px;align-items:center}.risk-code{font-size:11px;font-weight:700;font-family:'IBM Plex Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.risk-util{font-size:10px;font-weight:700}
+      .risk-sub{font-size:9px;color:var(--text3);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.risk-amt{font-size:11px;margin-top:5px;font-weight:600}
+      .yoy-insights{margin-bottom:12px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);padding:10px}.yoy-insight-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.yoy-insight{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px;cursor:pointer}.yoy-insight:hover{border-color:var(--blue)}.yoy-insight-k{font-size:9px;color:var(--text3);text-transform:uppercase;font-weight:700}.yoy-insight-v{font-size:12px;font-weight:700;margin-top:3px}.yoy-insight-s{font-size:9px;color:var(--text3);margin-top:2px}
+      .dev-toast{position:fixed;right:18px;bottom:18px;z-index:99999;background:#172033;color:#fff;padding:9px 12px;border-radius:8px;font-size:11px;box-shadow:0 4px 20px rgba(0,0,0,.18);opacity:0;transform:translateY(6px);transition:.18s}.dev-toast.show{opacity:1;transform:translateY(0)}
+      @media(max-width:1100px){.exec-grid{grid-template-columns:repeat(3,minmax(140px,1fr))}.risk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.yoy-insight-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      @media(max-width:760px){.filters{position:relative;gap:8px!important}.filters select{min-width:calc(50% - 5px)}.dev-search-wrap{min-width:100%;max-width:none}.exec-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.exec-overview-head{align-items:flex-start;flex-direction:column}.risk-grid{grid-template-columns:1fr}.two-col{grid-template-columns:1fr!important}.card-header{align-items:flex-start;flex-wrap:wrap}.table-scroll{max-height:70vh;overflow:auto}.pivot{min-width:1500px}}
+      @media(max-width:460px){.filters select{min-width:100%}.exec-grid{grid-template-columns:1fr}.yoy-insight-grid{grid-template-columns:1fr}.main{padding-left:10px!important;padding-right:10px!important}}
     `;
     document.head.appendChild(style);
   }
@@ -148,11 +162,65 @@
     });
   }
 
+  function showToast(text) {
+    let toast = document.getElementById('devToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'devToast';
+      toast.className = 'dev-toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = text;
+    toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => toast.classList.remove('show'), 1600);
+  }
+
+  function ensureActions() {
+    const clear = document.getElementById('clearBtn');
+    if (clear && !document.getElementById('devCopyView')) {
+      const btn = document.createElement('button');
+      btn.id = 'devCopyView';
+      btn.type = 'button';
+      btn.className = 'dev-action-btn';
+      btn.textContent = '🔗 Copy View';
+      btn.addEventListener('click', copyCurrentView);
+      clear.parentElement.insertBefore(btn, clear);
+    }
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+      exportBtn.textContent = '⬇ Export View';
+      exportBtn.classList.add('dev-action-btn');
+      if (!document.getElementById('devExportOver')) {
+        const over = document.createElement('button');
+        over.id = 'devExportOver';
+        over.type = 'button';
+        over.className = 'dev-action-btn';
+        over.textContent = '⚠ Export Over Budget';
+        over.addEventListener('click', exportOverBudgetCSV);
+        exportBtn.insertAdjacentElement('afterend', over);
+      }
+    }
+  }
+
+  function ensureRiskCard() {
+    const dq = document.getElementById('devDataQuality');
+    if (!dq || document.getElementById('devRiskCard')) return;
+    const card = document.createElement('div');
+    card.id = 'devRiskCard';
+    card.className = 'card';
+    card.style.marginBottom = '18px';
+    card.innerHTML = '<div class="card-header"><span class="card-title">BUDGET RISK DRILL-DOWN</span><span style="font-size:10px;color:var(--text3);">คลิกรายการเพื่อเจาะ Activity + Account</span></div><div class="card-body"><div id="devRiskGrid" class="risk-grid"></div></div>';
+    dq.insertAdjacentElement('afterend', card);
+  }
+
   function ensureUI() {
     injectStyles();
     ensureSearch();
     ensureOverview();
     ensureDataQuality();
+    ensureActions();
+    ensureRiskCard();
   }
 
   function updateExecutive() {
@@ -177,7 +245,7 @@
     pill.className = 'health-pill health-' + h.level;
     pill.innerHTML = '<span class="health-dot"></span><span>' + h.label + (Number.isFinite(pct) ? ' · ' + pct.toFixed(1) + '%' : '') + '</span>';
     grid.innerHTML = [
-      ['Budget', fmtM(budget), 'Forecast + Personal'],
+      ['Full Budget', fmtM(budget), 'Forecast + Personal'],
       ['Posted Actual', fmtM(posted), 'Actual excluding Packing Forecast'],
       ['Pipeline', fmtM(pipeline), 'Packing Forecast'],
       ['Projected EOY', fmtM(projected), Number.isFinite(pct) ? pct.toFixed(1) + '% of budget' : 'No budget base'],
@@ -244,11 +312,171 @@
     }
   }
 
+  function updateRiskCard() {
+    const grid = document.getElementById('devRiskGrid');
+    if (!grid || !RAW.length) return;
+    const scope = getExecutiveScope(RAW);
+    const groups = {};
+    scope.forEach(r => {
+      const ac = String(r['Activity Code'] || '—');
+      const ba = String(r['Budget Account'] || '—');
+      const key = ac + '||' + ba;
+      if (!groups[key]) groups[key] = { ac, ba, budget: 0, projected: 0 };
+      const amt = amountOf(r);
+      if (BASE_TYPES.includes(r['Type'])) groups[key].budget += amt;
+      if (SPENT_TYPES.includes(r['Type'])) groups[key].projected += amt;
+    });
+    const ranked = Object.values(groups).map(g => {
+      const util = g.budget > 0 ? g.projected / g.budget * 100 : (g.projected > 0 ? Infinity : 0);
+      const risk = Math.max(g.projected - g.budget, 0);
+      return { ...g, util, risk };
+    }).sort((a,b) => (b.risk - a.risk) || ((Number.isFinite(b.util) ? b.util : 9999) - (Number.isFinite(a.util) ? a.util : 9999)) || (b.budget - a.budget)).slice(0,6);
+    if (!ranked.length) {
+      grid.innerHTML = '<div style="font-size:11px;color:var(--text3);">— ไม่มีข้อมูลใน scope นี้ —</div>';
+      return;
+    }
+    grid.innerHTML = ranked.map(g => {
+      const pct = Number.isFinite(g.util) ? g.util : 999;
+      const h = healthMeta(pct);
+      return '<button type="button" class="risk-item" data-ac="' + esc(g.ac) + '" data-ba="' + esc(g.ba) + '"><div class="risk-top"><span class="risk-code">' + esc(g.ac) + ' · ' + esc(fmtAccount(g.ba)) + '</span><span class="risk-util" style="color:' + (h.level === 'red' ? '#b91c1c' : h.level === 'orange' ? '#c2410c' : h.level === 'amber' ? '#a16207' : '#15803d') + '">' + (Number.isFinite(g.util) ? g.util.toFixed(1) + '%' : 'NO BASE') + '</span></div><div class="risk-sub">Budget ' + esc(fmtM(g.budget)) + ' · Projected ' + esc(fmtM(g.projected)) + '</div><div class="risk-amt">' + (g.risk > 0 ? 'Risk +' + esc(fmtM(g.risk)) : 'Remaining ' + esc(fmtM(g.budget - g.projected))) + '</div></button>';
+    }).join('');
+    grid.querySelectorAll('.risk-item').forEach(btn => btn.addEventListener('click', () => {
+      const acEl = document.getElementById('fAC');
+      const baEl = document.getElementById('fBA');
+      if (acEl) acEl.value = btn.dataset.ac || '';
+      if (baEl) baEl.value = btn.dataset.ba || '';
+      applyFilters();
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }));
+  }
+
+  function csvEscape(v) {
+    const s = String(v == null ? '' : v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function safePart(v) {
+    return String(v || '').trim().replace(/[^a-z0-9ก-๙_-]+/gi, '-').replace(/^-+|-+$/g, '').slice(0,40);
+  }
+
+  function downloadRows(rows, suffix) {
+    if (!rows.length) { alert('ไม่มีข้อมูลที่จะส่งออก'); return; }
+    const cols = ['Activity Code','Budget Account','Category (OPEX/CAPEX)','User','Status','Description','Type','Month','Amount','Forecast','Actual'];
+    const csv = '\uFEFF' + cols.join(',') + '\n' + rows.map(r => cols.map(c => csvEscape(r[c])).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const year = document.getElementById('fYear')?.value || 'year';
+    const ac = document.getElementById('fAC')?.value || '';
+    const date = new Date().toISOString().slice(0,10);
+    const bits = ['PNGD', year, suffix, ac, state.search ? 'search-' + state.search : '', date].map(safePart).filter(Boolean);
+    a.href = url;
+    a.download = bits.join('_') + '.csv';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+
+  exportCSV = function () {
+    downloadRows(getFiltered(), 'filtered-view');
+  };
+
+  function getOverBudgetRows() {
+    const groups = {};
+    RAW.forEach(r => {
+      const ac = String(r['Activity Code'] || '—');
+      const ba = String(r['Budget Account'] || '—');
+      const key = ac + '||' + ba;
+      if (!groups[key]) groups[key] = { budget: 0, spent: 0 };
+      const amt = amountOf(r);
+      if (BASE_TYPES.includes(r['Type'])) groups[key].budget += amt;
+      if (SPENT_TYPES.includes(r['Type'])) groups[key].spent += amt;
+    });
+    const over = new Set(Object.entries(groups).filter(([,g]) => g.spent > g.budget).map(([k]) => k));
+    return RAW.filter(r => over.has(String(r['Activity Code'] || '—') + '||' + String(r['Budget Account'] || '—')));
+  }
+
+  function exportOverBudgetCSV() {
+    downloadRows(getOverBudgetRows(), 'over-budget');
+  }
+
+  async function copyCurrentView() {
+    saveFiltersToHash();
+    const url = location.href;
+    state.lastShareUrl = url;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('คัดลอกลิงก์มุมมองนี้แล้ว');
+    } catch (_) {
+      showToast('สร้างลิงก์แล้ว — browser ไม่อนุญาต clipboard');
+    }
+    return url;
+  }
+
+  function updateYoYInsights() {
+    const body = document.getElementById('yoyBody');
+    if (!body || !YOY_DATA.prior.length || !YOY_DATA.current.length) return;
+    document.getElementById('devYoYInsights')?.remove();
+    const priorF = getFilteredFor(YOY_DATA.prior);
+    const currentF = getFilteredFor(YOY_DATA.current);
+    const agg = arr => {
+      const out = {};
+      arr.forEach(r => {
+        if (!BASE_TYPES.includes(r['Type'])) return;
+        const k = canonicalActivity(r['Activity Code']);
+        out[k] = (out[k] || 0) + amountOf(r);
+      });
+      return out;
+    };
+    const p = agg(priorF), c = agg(currentF);
+    const keys = [...new Set([...Object.keys(p), ...Object.keys(c)])];
+    const deltas = keys.map(k => ({ k, p:p[k]||0, c:c[k]||0, d:(c[k]||0)-(p[k]||0) }));
+    const inc = deltas.filter(x=>x.d>0).sort((a,b)=>b.d-a.d)[0];
+    const dec = deltas.filter(x=>x.d<0).sort((a,b)=>a.d-b.d)[0];
+    const added = deltas.filter(x=>x.p===0 && x.c>0);
+    const removed = deltas.filter(x=>x.p>0 && x.c===0);
+    const items = [
+      { label:'Top Increase', item:inc, sub:inc ? '+' + fmtM(inc.d) : '—' },
+      { label:'Top Decrease', item:dec, sub:dec ? fmtM(dec.d) : '—' },
+      { label:'New Activities', item:added[0], value:String(added.length), sub:added.slice(0,3).map(x=>x.k).join(', ') || 'None' },
+      { label:'Removed Activities', item:removed[0], value:String(removed.length), sub:removed.slice(0,3).map(x=>x.k).join(', ') || 'None' }
+    ];
+    const box = document.createElement('div');
+    box.id = 'devYoYInsights';
+    box.className = 'yoy-insights';
+    box.innerHTML = '<div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:7px;text-transform:uppercase;letter-spacing:.4px;">YoY Insights</div><div class="yoy-insight-grid">' + items.map(x => '<button type="button" class="yoy-insight" data-ac="' + esc(x.item?.k || '') + '"><div class="yoy-insight-k">' + esc(x.label) + '</div><div class="yoy-insight-v">' + esc(x.value || x.item?.k || '—') + '</div><div class="yoy-insight-s">' + esc(x.sub) + '</div></button>').join('') + '</div>';
+    body.insertAdjacentElement('afterbegin', box);
+    box.querySelectorAll('.yoy-insight[data-ac]').forEach(btn => btn.addEventListener('click', () => {
+      if (btn.dataset.ac) yoyDrill(btn.dataset.ac);
+    }));
+  }
+
+  renderYoY = function () {
+    originalRenderYoY();
+    updateYoYInsights();
+  };
+
+  saveFiltersToHash = function () {
+    originalSaveFiltersToHash();
+    const params = new URLSearchParams(location.hash.startsWith('#') ? location.hash.slice(1) : location.hash);
+    if (state.search.trim()) params.set('q', state.search.trim()); else params.delete('q');
+    const h = params.toString();
+    history.replaceState(null, '', h ? location.pathname + location.search + '#' + h : location.pathname + location.search);
+  };
+
+  loadFiltersFromHash = function () {
+    const any = originalLoadFiltersFromHash();
+    const params = new URLSearchParams(location.hash.startsWith('#') ? location.hash.slice(1) : location.hash);
+    state.search = params.get('q') || '';
+    const input = document.getElementById('devGlobalSearch');
+    if (input) input.value = state.search;
+    return any || params.has('q');
+  };
+
   function refreshEnhancements() {
     ensureUI();
     updateExecutive();
     updateDataQuality();
     decorateTrafficLights();
+    updateRiskCard();
   }
 
   renderApp = function () {
@@ -271,6 +499,6 @@
 
   ensureUI();
   if (RAW.length) refreshEnhancements();
-  window.__PNGD_DEV_ENHANCEMENTS = { version: 'phase1-20260831', state };
-  console.info('[PNGD DEV] Phase 1 enhancements active');
+  window.__PNGD_DEV_ENHANCEMENTS = { version: 'phase2-20260831', state, copyCurrentView };
+  console.info('[PNGD DEV] Phase 2 enhancements active');
 })();
