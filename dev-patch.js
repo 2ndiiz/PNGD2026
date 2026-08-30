@@ -92,18 +92,21 @@
   };
 
   // Fix 3b: after filtering from Over Budget, force the final post-render viewport to the top.
+  // Use immediate + timer fallbacks so this also works when animation frames are throttled.
   filterToGroup = function (ac, ba) {
     document.getElementById('fAC').value = ac;
     document.getElementById('fBA').value = ba;
     applyFilters();
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const scroller = document.scrollingElement || document.documentElement;
-        scroller.scrollTop = 0;
-        document.body.scrollTop = 0;
-        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-      });
-    });
+
+    const scrollTopNow = () => {
+      const scroller = document.scrollingElement || document.documentElement;
+      scroller.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    };
+    scrollTopNow();
+    setTimeout(scrollTopNow, 0);
+    setTimeout(scrollTopNow, 120);
   };
 
   // Fix 4: hash state must be fully restorable, including "no Type selected".
