@@ -831,7 +831,7 @@ exports.init = init;
                 replaceHtmlCallback: (plainHTML, hashedPassword) => {
                     const secureBootstrapTag = '<script src="./dev-secure-bootstrap.js?v=20260830-1"></' + 'script>';
                     const devPatchTag = '<script src="./dev-patch.js?v=20260830-4"></' + 'script>';
-                    const devEnhancementsTag = '<script src="./dev-enhancements.js?v=20260831-2"></' + 'script>';
+                    const devEnhancementsTag = '<script src="./dev-enhancements.js?v=20260831-3"></' + 'script>';
                     const proofTag = '<script id="pngd-dev-auth-proof">window.__PNGD_DEV_AUTH_PROOF=' + JSON.stringify(hashedPassword) + ';document.currentScript.remove();</' + 'script>';
 
                     // DEV security isolation: decrypted dashboard points only at Restricted TEST copies.

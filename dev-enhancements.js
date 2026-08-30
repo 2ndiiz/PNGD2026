@@ -5,9 +5,15 @@
 
   const state = {
     search: '',
-    phase: '2',
+    phase: '3',
     lastShareUrl: '',
+    lastRenderMs: 0,
+    lastDataAt: 0,
+    lastLoadMs: 0,
   };
+  const searchTextCache = new WeakMap();
+  let dqCacheRaw = null;
+  let dqCacheIssues = [];
 
   const originalGetFilteredFor = getFilteredFor;
   const originalRenderApp = renderApp;
@@ -16,13 +22,17 @@
   const originalSaveFiltersToHash = saveFiltersToHash;
   const originalLoadFiltersFromHash = loadFiltersFromHash;
   const originalRenderYoY = renderYoY;
+  const originalLoadDataEnhanced = loadData;
 
   function textOf(row) {
-    return [
+    if (searchTextCache.has(row)) return searchTextCache.get(row);
+    const text = [
       row['Activity Code'], row['Budget Account'], row['Description'],
       row['Category (OPEX/CAPEX)'], row['User'], row['Status'],
       row['Type'], row['Month']
     ].map(v => String(v == null ? '' : v).toLowerCase()).join(' | ');
+    searchTextCache.set(row, text);
+    return text;
   }
 
   function matchesSearch(row) {
@@ -107,9 +117,10 @@
       .risk-sub{font-size:9px;color:var(--text3);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.risk-amt{font-size:11px;margin-top:5px;font-weight:600}
       .yoy-insights{margin-bottom:12px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);padding:10px}.yoy-insight-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.yoy-insight{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px;cursor:pointer}.yoy-insight:hover{border-color:var(--blue)}.yoy-insight-k{font-size:9px;color:var(--text3);text-transform:uppercase;font-weight:700}.yoy-insight-v{font-size:12px;font-weight:700;margin-top:3px}.yoy-insight-s{font-size:9px;color:var(--text3);margin-top:2px}
       .dev-toast{position:fixed;right:18px;bottom:18px;z-index:99999;background:#172033;color:#fff;padding:9px 12px;border-radius:8px;font-size:11px;box-shadow:0 4px 20px rgba(0,0,0,.18);opacity:0;transform:translateY(6px);transition:.18s}.dev-toast.show{opacity:1;transform:translateY(0)}
-      @media(max-width:1100px){.exec-grid{grid-template-columns:repeat(3,minmax(140px,1fr))}.risk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.yoy-insight-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      .system-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.system-item{border:1px solid var(--border);border-radius:7px;background:var(--surface2);padding:8px}.system-k{font-size:9px;color:var(--text3);text-transform:uppercase;font-weight:700;letter-spacing:.35px}.system-v{font-size:11px;color:var(--text);font-weight:600;margin-top:3px;word-break:break-word}.system-ok{color:#15803d}.system-warn{color:#a16207}.system-bad{color:#b91c1c}
+      @media(max-width:1100px){.exec-grid{grid-template-columns:repeat(3,minmax(140px,1fr))}.risk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.yoy-insight-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.system-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
       @media(max-width:760px){.filters{position:relative;gap:8px!important}.filters select{min-width:calc(50% - 5px)}.dev-search-wrap{min-width:100%;max-width:none}.exec-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.exec-overview-head{align-items:flex-start;flex-direction:column}.risk-grid{grid-template-columns:1fr}.two-col{grid-template-columns:1fr!important}.card-header{align-items:flex-start;flex-wrap:wrap}.table-scroll{max-height:70vh;overflow:auto}.pivot{min-width:1500px}}
-      @media(max-width:460px){.filters select{min-width:100%}.exec-grid{grid-template-columns:1fr}.yoy-insight-grid{grid-template-columns:1fr}.main{padding-left:10px!important;padding-right:10px!important}}
+      @media(max-width:460px){.filters select{min-width:100%}.exec-grid{grid-template-columns:1fr}.yoy-insight-grid{grid-template-columns:1fr}.system-grid{grid-template-columns:1fr}.main{padding-left:10px!important;padding-right:10px!important}}
     `;
     document.head.appendChild(style);
   }
@@ -214,6 +225,24 @@
     dq.insertAdjacentElement('afterend', card);
   }
 
+  function ensureSystemStatus() {
+    const risk = document.getElementById('devRiskCard');
+    if (!risk || document.getElementById('devSystemStatus')) return;
+    const card = document.createElement('div');
+    card.id = 'devSystemStatus';
+    card.className = 'card';
+    card.style.marginBottom = '18px';
+    card.innerHTML = '<div class="card-header"><span class="card-title">SYSTEM STATUS <span style="font-size:9px;color:var(--text3);font-weight:500;">DEV diagnostics · no secrets</span></span><button id="devSystemToggle" type="button" class="dev-action-btn">รายละเอียด</button></div><div id="devSystemBody" class="card-body" style="display:none;"><div id="devSystemGrid" class="system-grid"></div></div>';
+    risk.insertAdjacentElement('afterend', card);
+    card.querySelector('#devSystemToggle').addEventListener('click', () => {
+      const body = card.querySelector('#devSystemBody');
+      const open = body.style.display !== 'none';
+      body.style.display = open ? 'none' : 'block';
+      card.querySelector('#devSystemToggle').textContent = open ? 'รายละเอียด' : 'ซ่อน';
+      if (!open) updateSystemStatus();
+    });
+  }
+
   function ensureUI() {
     injectStyles();
     ensureSearch();
@@ -221,6 +250,7 @@
     ensureDataQuality();
     ensureActions();
     ensureRiskCard();
+    ensureSystemStatus();
   }
 
   function updateExecutive() {
@@ -282,7 +312,11 @@
     const count = document.getElementById('devDqCount');
     const body = document.getElementById('devDqBody');
     if (!card || !count || !body || !RAW.length) return;
-    const issues = collectQualityIssues();
+    const issues = dqCacheRaw === RAW ? dqCacheIssues : collectQualityIssues();
+    if (dqCacheRaw !== RAW) {
+      dqCacheRaw = RAW;
+      dqCacheIssues = issues;
+    }
     card.classList.toggle('dq-good', issues.length === 0);
     card.classList.toggle('dq-warn', issues.length > 0);
     count.textContent = issues.length === 0 ? '✓ 0 issues' : issues.length + ' issues';
@@ -471,12 +505,55 @@
     return any || params.has('q');
   };
 
+  function ageLabel(ts) {
+    if (!ts) return 'n/a';
+    const sec = Math.max(0, Math.round((Date.now() - ts) / 1000));
+    if (sec < 60) return sec + ' sec ago';
+    const min = Math.round(sec / 60);
+    if (min < 60) return min + ' min ago';
+    return (min / 60).toFixed(1) + ' hr ago';
+  }
+
+  function updateSystemStatus() {
+    const grid = document.getElementById('devSystemGrid');
+    if (!grid) return;
+    if (RAW.length && !state.lastDataAt) state.lastDataAt = Date.now();
+    const year = document.getElementById('fYear')?.value || CONFIG.DEFAULT_YEAR;
+    let cache = null;
+    try { cache = readCache(year); } catch (_) { cache = null; }
+    const resources = performance.getEntriesByType('resource').map(r => r.name);
+    const googleDirect = resources.filter(u => u.includes('docs.google.com/spreadsheets')).length;
+    const workerCalls = resources.filter(u => u.includes('pngd-budget-secure-dev')).length;
+    let sessionActive = false;
+    try { sessionActive = !!sessionStorage.getItem('pngd_secure_dev_session_v1'); } catch (_) {}
+    const secureActive = !!window.__PNGD_SECURE_DEV?.active && location.protocol === 'https:' && googleDirect === 0;
+    const status = document.getElementById('statusBadge')?.textContent?.trim() || 'n/a';
+    const items = [
+      ['Frontend', 'Phase 3 · 20260831', ''],
+      ['Secure Gateway', secureActive ? 'OK · Worker only' : 'CHECK', secureActive ? 'system-ok' : 'system-bad'],
+      ['Worker Session', sessionActive ? 'Active' : 'Not cached', sessionActive ? 'system-ok' : 'system-warn'],
+      ['Data Source', window.__PNGD_SECURE_DEV?.dataSource || 'Unknown', secureActive ? 'system-ok' : 'system-warn'],
+      ['Year / RAW', year + ' · ' + RAW.length.toLocaleString() + ' rows', ''],
+      ['Filtered', (typeof getFiltered === 'function' ? getFiltered().length : 0).toLocaleString() + ' rows', ''],
+      ['Cache', cache?.ts ? ageLabel(cache.ts) : 'none', cache?.ts ? 'system-ok' : 'system-warn'],
+      ['Last Data', state.lastDataAt ? ageLabel(state.lastDataAt) : 'n/a', ''],
+      ['Last Load', state.lastLoadMs ? state.lastLoadMs.toFixed(0) + ' ms' : 'initial/cache', ''],
+      ['Last Render', state.lastRenderMs.toFixed(1) + ' ms', state.lastRenderMs > 350 ? 'system-warn' : 'system-ok'],
+      ['Direct Google', googleDirect === 0 ? '0 requests' : googleDirect + ' requests', googleDirect === 0 ? 'system-ok' : 'system-bad'],
+      ['Worker Requests', workerCalls.toLocaleString(), ''],
+      ['Dashboard Status', status, ''],
+      ['Connection', navigator.onLine ? 'Online' : 'Offline', navigator.onLine ? 'system-ok' : 'system-bad']
+    ];
+    grid.innerHTML = items.map(x => '<div class="system-item"><div class="system-k">' + esc(x[0]) + '</div><div class="system-v ' + x[2] + '">' + esc(x[1]) + '</div></div>').join('');
+  }
+
   function refreshEnhancements() {
     ensureUI();
     updateExecutive();
     updateDataQuality();
     decorateTrafficLights();
     updateRiskCard();
+    updateSystemStatus();
   }
 
   renderApp = function () {
@@ -485,9 +562,26 @@
   };
 
   applyFilters = function () {
+    const t0 = performance.now();
     ensureUI();
     originalApplyFilters();
     refreshEnhancements();
+    state.lastRenderMs = performance.now() - t0;
+    updateSystemStatus();
+  };
+
+  loadData = async function (force) {
+    const t0 = performance.now();
+    const previousRaw = RAW;
+    const result = await originalLoadDataEnhanced(force);
+    state.lastLoadMs = performance.now() - t0;
+    state.lastDataAt = Date.now();
+    if (RAW !== previousRaw) {
+      dqCacheRaw = null;
+      dqCacheIssues = [];
+    }
+    if (RAW.length) refreshEnhancements();
+    return result;
   };
 
   clearAllFilters = function () {
@@ -499,6 +593,6 @@
 
   ensureUI();
   if (RAW.length) refreshEnhancements();
-  window.__PNGD_DEV_ENHANCEMENTS = { version: 'phase2-20260831', state, copyCurrentView };
-  console.info('[PNGD DEV] Phase 2 enhancements active');
+  window.__PNGD_DEV_ENHANCEMENTS = { version: 'phase3-20260831', state, copyCurrentView, updateSystemStatus };
+  console.info('[PNGD DEV] Phase 3 enhancements active');
 })();
