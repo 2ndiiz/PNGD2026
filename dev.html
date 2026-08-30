@@ -828,7 +828,14 @@ exports.init = init;
             const templateConfig = {
                 rememberExpirationKey: "staticrypt_expiration",
                 rememberPassphraseKey: "staticrypt_passphrase",
-                replaceHtmlCallback: null,
+                replaceHtmlCallback: (plainHTML) => {
+                    const devPatchTag = '<script src="./dev-patch.js?v=20260830"></' + 'script>';
+                    const patchedHTML = plainHTML.includes('</body>')
+                        ? plainHTML.replace('</body>', devPatchTag + '</body>')
+                        : plainHTML + devPatchTag;
+                    document.write(patchedHTML);
+                    document.close();
+                },
                 clearLocalStorageCallback: null,
             };
 
