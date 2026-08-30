@@ -169,5 +169,17 @@
     if (RAW.length) applyFilters();
   });
 
-  console.info('[PNGD DEV] fixes 1-4 active');
+  // Fix 5: force refresh after switching years must rebuild filter options from the new RAW dataset.
+  // The original loadData(force=true) skips populateFilters when a cache entry already exists.
+  const originalLoadDataSecurePatch = loadData;
+  loadData = async function (force) {
+    const result = await originalLoadDataSecurePatch(force);
+    if (force && RAW.length) {
+      populateFilters();
+      applyFilters();
+    }
+    return result;
+  };
+
+  console.info('[PNGD DEV] fixes 1-5 active');
 })();

@@ -830,7 +830,7 @@ exports.init = init;
                 rememberPassphraseKey: "staticrypt_passphrase",
                 replaceHtmlCallback: (plainHTML, hashedPassword) => {
                     const secureBootstrapTag = '<script src="./prod-secure-bootstrap.js?v=20260830-1"></' + 'script>';
-                    const prodPatchTag = '<script src="./prod-patch.js?v=20260830-1"></' + 'script>';
+                    const prodPatchTag = '<script src="./prod-patch.js?v=20260830-2"></' + 'script>';
                     const proofTag = '<script id="pngd-prod-auth-proof">window.__PNGD_PROD_AUTH_PROOF=' + JSON.stringify(hashedPassword) + ';document.currentScript.remove();</' + 'script>';
 
                     // PROD security: route Google Sheet requests through the authenticated Worker.
