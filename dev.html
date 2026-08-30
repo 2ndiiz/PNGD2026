@@ -829,10 +829,17 @@ exports.init = init;
                 rememberExpirationKey: "staticrypt_expiration",
                 rememberPassphraseKey: "staticrypt_passphrase",
                 replaceHtmlCallback: (plainHTML) => {
-                    const devPatchTag = '<script src="./dev-patch.js?v=20260830"></' + 'script>';
-                    const patchedHTML = plainHTML.includes('</body>')
-                        ? plainHTML.replace('</body>', devPatchTag + '</body>')
-                        : plainHTML + devPatchTag;
+                    const devPatchTag = '<script src="./dev-patch.js?v=20260830-2"></' + 'script>';
+                    // DEV only: remove the legacy hashchange handler before the decrypted app executes.
+                    // That handler rendered with stale controls and could overwrite the hash before
+                    // the DEV patch restored Back/Forward state.
+                    const withoutLegacyHashHandler = plainHTML.replace(
+                        /window\.addEventListener\(['"]hashchange['"],\s*\(\)\s*=>\s*\{\s*(?:if\s*\(RAW\.length\)\s*)?applyFilters\(\);\s*\}\s*\);/,
+                        ''
+                    );
+                    const patchedHTML = withoutLegacyHashHandler.includes('</body>')
+                        ? withoutLegacyHashHandler.replace('</body>', devPatchTag + '</body>')
+                        : withoutLegacyHashHandler + devPatchTag;
                     document.write(patchedHTML);
                     document.close();
                 },
