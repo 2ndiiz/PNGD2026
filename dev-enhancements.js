@@ -15,6 +15,13 @@
   let dqCacheRaw = null;
   let dqCacheIssues = [];
 
+  // Budget semantics: Forecast is the authoritative budget.
+  // Personal is only an allocation/view of the same Forecast budget by person,
+  // so it must never increase the budget base.
+  if (Array.isArray(BASE_TYPES)) {
+    BASE_TYPES.splice(0, BASE_TYPES.length, 'Forecast');
+  }
+
   const originalGetFilteredFor = getFilteredFor;
   const originalRenderApp = renderApp;
   const originalApplyFilters = applyFilters;
@@ -22,6 +29,8 @@
   const originalSaveFiltersToHash = saveFiltersToHash;
   const originalLoadFiltersFromHash = loadFiltersFromHash;
   const originalRenderYoY = renderYoY;
+  const originalRenderChartBudgetSemantics = renderChart;
+  const originalRenderKPIsBudgetSemantics = renderKPIs;
   const originalLoadDataEnhanced = loadData;
 
   function textOf(row) {
@@ -75,6 +84,27 @@
     if (pct >= 70) return { level: 'amber', label: 'WATCH' };
     return { level: 'green', label: 'HEALTHY' };
   }
+
+  // Keep Personal visible as its own series, but never use it as budget denominator.
+  renderChart = function (data) {
+    originalRenderChartBudgetSemantics(data);
+    if (!barChart || !Array.isArray(barChart.data?.datasets) || !barChart.data.datasets.length) return;
+    const forecast = sumByMonth(data, 'Forecast');
+    const actual = sumByMonth(data, 'Actual');
+    const util = forecast.map((budget, i) => budget > 0 ? +(actual[i] / budget * 100).toFixed(1) : 0);
+    barChart.data.datasets[0].data = util;
+    try { barChart.update('none'); } catch (_) { try { barChart.update(); } catch (_) {} }
+  };
+
+  renderKPIs = function (data) {
+    originalRenderKPIsBudgetSemantics(data);
+    const budgetKpi = [...document.querySelectorAll('#kpiEl .kpi')]
+      .find(k => /Total Budget/i.test(k.querySelector('.kpi-label')?.textContent || ''));
+    if (budgetKpi) {
+      const sub = budgetKpi.querySelector('.kpi-sub');
+      if (sub) sub.textContent = 'Forecast only · Personal = allocation view';
+    }
+  };
 
   function injectStyles() {
     if (document.getElementById('pngd-dev-enhance-style')) return;
@@ -275,7 +305,7 @@
     pill.className = 'health-pill health-' + h.level;
     pill.innerHTML = '<span class="health-dot"></span><span>' + h.label + (Number.isFinite(pct) ? ' · ' + pct.toFixed(1) + '%' : '') + '</span>';
     grid.innerHTML = [
-      ['Full Budget', fmtM(budget), 'Forecast + Personal'],
+      ['Full Budget', fmtM(budget), 'Forecast only · Personal = allocation view'],
       ['Posted Actual', fmtM(posted), 'Actual excluding Packing Forecast'],
       ['Pipeline', fmtM(pipeline), 'Packing Forecast'],
       ['Projected EOY', fmtM(projected), Number.isFinite(pct) ? pct.toFixed(1) + '% of budget' : 'No budget base'],
