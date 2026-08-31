@@ -307,7 +307,7 @@
     grid.innerHTML = [
       ['Full Budget', fmtM(budget), 'Forecast only · Personal = allocation view'],
       ['Posted Actual', fmtM(posted), 'Actual excluding Packing Forecast'],
-      ['Pipeline', fmtM(pipeline), 'Packing Forecast'],
+      ['Expected Spend', fmtM(pipeline), 'Packing Forecast · คาดว่าจะจ่าย'],
       ['Projected EOY', fmtM(projected), Number.isFinite(pct) ? pct.toFixed(1) + '% of budget' : 'No budget base'],
       ['Remaining', fmtM(remaining), remaining >= 0 ? 'Available vs projected' : 'Projected overspend'],
       ['Budget at Risk', fmtM(atRisk), atRisk > 0 ? 'Projected over budget' : 'No projected overrun']
