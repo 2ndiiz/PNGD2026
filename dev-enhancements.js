@@ -96,14 +96,32 @@
     try { barChart.update('none'); } catch (_) { try { barChart.update(); } catch (_) {} }
   };
 
-  renderKPIs = function (data) {
-    originalRenderKPIsBudgetSemantics(data);
-    const budgetKpi = [...document.querySelectorAll('#kpiEl .kpi')]
-      .find(k => /Total Budget/i.test(k.querySelector('.kpi-label')?.textContent || ''));
-    if (budgetKpi) {
-      const sub = budgetKpi.querySelector('.kpi-sub');
-      if (sub) sub.textContent = 'Forecast only · Personal = allocation view';
-    }
+  renderKPIs = function () {
+    const el = document.getElementById('kpiEl');
+    if (!el || !RAW.length) return;
+    const scope = getExecutiveScope(RAW);
+    let budget = 0, actualUsed = 0, expectedSpend = 0;
+    scope.forEach(r => {
+      const amt = amountOf(r);
+      if (r['Type'] === 'Forecast') budget += amt;
+      if (SPENT_TYPES.includes(r['Type'])) {
+        if (String(r['Status'] || '').trim() === 'Packing Forecast') expectedSpend += amt;
+        else actualUsed += amt;
+      }
+    });
+    const projected = actualUsed + expectedSpend;
+    const utilization = budget > 0 ? projected / budget * 100 : NaN;
+    const remaining = budget - projected;
+    const h = healthMeta(utilization);
+    const utilColor = h.level === 'red' ? 'var(--red)' : h.level === 'orange' ? '#c2410c' : h.level === 'amber' ? '#a16207' : 'var(--green)';
+    el.innerHTML = `
+      <div class="kpi"><div class="kpi-label">Total Budget</div><div class="kpi-value blue">${fmtM(budget)}</div><div class="kpi-sub">Forecast budget</div></div>
+      <div class="kpi"><div class="kpi-label">Actual Used</div><div class="kpi-value green">${fmtM(actualUsed)}</div><div class="kpi-sub">จ่ายจริงแล้ว</div></div>
+      <div class="kpi"><div class="kpi-label">Expected Spend</div><div class="kpi-value">${fmtM(expectedSpend)}</div><div class="kpi-sub">Packing Forecast · คาดว่าจะจ่าย</div></div>
+      <div class="kpi"><div class="kpi-label">Projected Spend</div><div class="kpi-value">${fmtM(projected)}</div><div class="kpi-sub">Actual Used + Expected Spend</div></div>
+      <div class="kpi dev-health-${h.level}"><div class="kpi-label">Utilization</div><div class="kpi-value" style="color:${utilColor};">${Number.isFinite(utilization) ? utilization.toFixed(1) + '%' : '—'}</div><div class="kpi-sub">Projected Spend ÷ Budget</div></div>
+      <div class="kpi"><div class="kpi-label">Remaining</div><div class="kpi-value" style="color:${remaining < 0 ? 'var(--red)' : 'var(--green)'};">${fmtM(remaining)}</div><div class="kpi-sub">Budget − Projected Spend</div></div>
+    `;
   };
 
   function injectStyles() {
@@ -130,6 +148,8 @@
       .exec-metric-label{font-size:9px;text-transform:uppercase;letter-spacing:.45px;color:var(--text3);font-weight:700;margin-bottom:5px}
       .exec-metric-value{font-size:18px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .exec-metric-sub{font-size:10px;color:var(--text3);margin-top:4px;line-height:1.35}
+      .dev-secondary-strip{display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap;margin:-8px 0 18px;padding:8px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);font-size:10px;color:var(--text3)}
+      .dev-secondary-item{display:inline-flex;align-items:center;gap:5px}.dev-secondary-item strong{color:var(--text2);font-size:11px}.dev-secondary-risk{color:#b91c1c;font-weight:700}.dev-secondary-ok{color:#15803d;font-weight:600}
       .dq-card{margin-bottom:18px;border-left:5px solid #64748b}
       .dq-card.dq-warn{border-left-color:#ca8a04}.dq-card.dq-good{border-left-color:#15803d}
       .dq-summary{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -183,8 +203,17 @@
     const box = document.createElement('section');
     box.id = 'devExecutiveOverview';
     box.className = 'exec-overview';
-    box.innerHTML = '<div class="exec-overview-head"><div><div class="exec-overview-title">Executive Summary</div><div style="font-size:10px;color:var(--text3);margin-top:2px;">Budget health & year-end outlook · current filter scope</div></div><div id="devHealthPill" class="health-pill health-unknown"><span class="health-dot"></span><span>LOADING</span></div></div><div id="devExecutiveGrid" class="exec-grid"></div>';
+    box.innerHTML = '<div class="exec-overview-head"><div><div class="exec-overview-title">Executive Summary</div><div style="font-size:10px;color:var(--text3);margin-top:2px;">Budget → Actual Used → Expected Spend → Projected Spend → Remaining</div></div><div id="devHealthPill" class="health-pill health-unknown"><span class="health-dot"></span><span>LOADING</span></div></div>';
     app.insertBefore(box, kpis);
+  }
+
+  function ensureSecondaryInfo() {
+    const kpis = document.getElementById('kpiEl');
+    if (!kpis || document.getElementById('devSecondaryInfo')) return;
+    const strip = document.createElement('div');
+    strip.id = 'devSecondaryInfo';
+    strip.className = 'dev-secondary-strip';
+    kpis.insertAdjacentElement('afterend', strip);
   }
 
   function ensureDataQuality() {
@@ -194,7 +223,8 @@
     card.id = 'devDataQuality';
     card.className = 'card dq-card';
     card.innerHTML = '<div class="card-header dq-summary"><span class="card-title">DATA QUALITY <span id="devDqCount" class="dq-badge">Checking…</span></span><button id="devDqToggle" type="button" style="font-family:inherit;font-size:10px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;">รายละเอียด</button></div><div id="devDqBody" class="card-body" style="display:none;padding-top:2px;"></div>';
-    kpis.insertAdjacentElement('afterend', card);
+    const secondary = document.getElementById('devSecondaryInfo');
+    (secondary || kpis).insertAdjacentElement('afterend', card);
     card.querySelector('#devDqToggle').addEventListener('click', () => {
       const body = card.querySelector('#devDqBody');
       const open = body.style.display !== 'none';
@@ -277,6 +307,7 @@
     injectStyles();
     ensureSearch();
     ensureOverview();
+    ensureSecondaryInfo();
     ensureDataQuality();
     ensureActions();
     ensureRiskCard();
@@ -284,34 +315,39 @@
   }
 
   function updateExecutive() {
-    const grid = document.getElementById('devExecutiveGrid');
     const pill = document.getElementById('devHealthPill');
-    if (!grid || !pill || !RAW.length) return;
+    const strip = document.getElementById('devSecondaryInfo');
+    if (!pill || !strip || !RAW.length) return;
     const scope = getExecutiveScope(RAW);
-    let budget = 0, posted = 0, pipeline = 0;
+    let budget = 0, actualUsed = 0, expectedSpend = 0;
+    const activityTotals = {};
     scope.forEach(r => {
       const amt = amountOf(r);
-      if (BASE_TYPES.includes(r['Type'])) budget += amt;
+      if (r['Type'] === 'Forecast') budget += amt;
       if (SPENT_TYPES.includes(r['Type'])) {
-        if (String(r['Status'] || '').trim() === 'Packing Forecast') pipeline += amt;
-        else posted += amt;
+        if (String(r['Status'] || '').trim() === 'Packing Forecast') expectedSpend += amt;
+        else actualUsed += amt;
+        const ac = String(r['Activity Code'] || '—');
+        activityTotals[ac] = (activityTotals[ac] || 0) + amt;
       }
     });
-    const projected = posted + pipeline;
-    const remaining = budget - projected;
+    const projected = actualUsed + expectedSpend;
     const atRisk = Math.max(projected - budget, 0);
     const pct = budget > 0 ? projected / budget * 100 : NaN;
     const h = healthMeta(pct);
+    let topActivity = '—', topAmount = 0;
+    Object.entries(activityTotals).forEach(([ac, amount]) => {
+      if (amount > topAmount) { topActivity = ac; topAmount = amount; }
+    });
     pill.className = 'health-pill health-' + h.level;
     pill.innerHTML = '<span class="health-dot"></span><span>' + h.label + (Number.isFinite(pct) ? ' · ' + pct.toFixed(1) + '%' : '') + '</span>';
-    grid.innerHTML = [
-      ['Full Budget', fmtM(budget), 'Forecast only · Personal = allocation view'],
-      ['Posted Actual', fmtM(posted), 'Actual excluding Packing Forecast'],
-      ['Expected Spend', fmtM(pipeline), 'Packing Forecast · คาดว่าจะจ่าย'],
-      ['Projected EOY', fmtM(projected), Number.isFinite(pct) ? pct.toFixed(1) + '% of budget' : 'No budget base'],
-      ['Remaining', fmtM(remaining), remaining >= 0 ? 'Available vs projected' : 'Projected overspend'],
-      ['Budget at Risk', fmtM(atRisk), atRisk > 0 ? 'Projected over budget' : 'No projected overrun']
-    ].map(x => '<div class="exec-metric"><div class="exec-metric-label">' + esc(x[0]) + '</div><div class="exec-metric-value">' + esc(x[1]) + '</div><div class="exec-metric-sub">' + esc(x[2]) + '</div></div>').join('');
+    const riskHtml = atRisk > 0
+      ? '<span class="dev-secondary-item dev-secondary-risk">⚠ Budget at Risk <strong>' + esc(fmtM(atRisk)) + '</strong></span>'
+      : '<span class="dev-secondary-item dev-secondary-ok">✓ No projected overrun</span>';
+    strip.innerHTML =
+      '<span class="dev-secondary-item">Transactions <strong>' + getFiltered().length.toLocaleString() + '</strong></span>' +
+      '<span class="dev-secondary-item">Top Activity <strong>' + esc(topActivity) + '</strong>' + (topAmount > 0 ? ' · ' + esc(fmtM(topAmount)) : '') + '</span>' +
+      riskHtml;
   }
 
   function collectQualityIssues() {
